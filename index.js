@@ -58,17 +58,14 @@ async function run() {
     res.send('Server Group 21 Information Security');
   });
 
-
   /**
  * @swagger
- * /registerVisitor:
+ * /registerAdmin:
  *   post:
- *     summary: Register a new visitor
- *     description: Register a new visitor with required details
+ *     summary: Register an admin
+ *     description: Register a new admin with username, password, name, email, phoneNumber, and role
  *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
+ *       - Admin
  *     requestBody:
  *       required: true
  *       content:
@@ -82,36 +79,28 @@ async function run() {
  *                 type: string
  *               name:
  *                 type: string
- *               icNumber:
- *                 type: string
- *               company:
- *                 type: string
- *               vehicleNumber:
- *                 type: string
  *               email:
  *                 type: string
  *                 format: email
  *               phoneNumber:
  *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [Admin]
  *             required:
  *               - username
  *               - password
  *               - name
- *               - icNumber
- *               - company
- *               - vehicleNumber
  *               - email
  *               - phoneNumber
+ *               - role
  *     responses:
  *       '200':
- *         description: Visitor registration successful
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
+ *         description: Admin registered successfully
+ *       '400':
+ *         description: Username already registered
  */
+  
   app.post('/registerAdmin', async (req, res) => {
     let data = req.body;
     res.send(await registerAdmin(client, data));
@@ -155,21 +144,196 @@ async function run() {
     res.send(await login(client, data));
   });
 
+  /**
+ * @swagger
+ * /loginSecurity:
+ *   post:
+ *     summary: Login as security
+ *     description: Authenticate and log in as security with username, password, name, email, phoneNumber, role, and visitors
+ *     tags:
+ *       - Security
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [Security]
+ *               visitors:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       '200':
+ *         description: Security login successful
+ *       '401':
+ *         description: Unauthorized - Invalid credentials
+ */
+
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
     res.send(await login(client, data));
   });
+
+  /**
+ * @swagger
+ * /loginVisitor:
+ *   post:
+ *     summary: Login as a visitor
+ *     description: Authenticate and log in as a visitor with username, password, name, email, security, company, vehicleNumber, icNumber, phoneNumber, role, and records
+ *     tags:
+ *       - Visitor
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               security:
+ *                 type: string
+ *               company:
+ *                 type: string
+ *               vehicleNumber:
+ *                 type: string
+ *               icNumber:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [Visitor]
+ *               records:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       '200':
+ *         description: Visitor login successful
+ *       '401':
+ *         description: Unauthorized - Invalid credentials
+ */
 
   app.post('/loginVisitor', async (req, res) => {
     let data = req.body;
     res.send(await login(client, data));
   });
 
+  /**
+ * @swagger
+ * /registerSecurity:
+ *   post:
+ *     summary: Register a new security user
+ *     description: Register a new security user with username, password, name, email, and phoneNumber
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Security user registered successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '400':
+ *         description: Username already in use, please enter another username
+ */
+
   app.post('/registerSecurity', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
+
+  /**
+ * @swagger
+ * /registerVisitor:
+ *   post:
+ *     summary: Register a new visitor
+ *     description: Register a new visitor with username, recordID, purpose, checkInTime, and checkOutTime
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               recordID:
+ *                 type: string
+ *               purpose:
+ *                 type: string
+ *               checkInTime:
+ *                 type: string
+ *                 format: date-time
+ *               checkOutTime:
+ *                 type: string
+ *                 format: date-time
+ *             required:
+ *               - username
+ *               - recordID
+ *               - purpose
+ *               - checkInTime
+ *               - checkOutTime
+ *     responses:
+ *       '200':
+ *         description: Visitor registered successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '400':
+ *         description: Username already in use, please enter another username
+ */
 
   app.post('/registerVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -209,7 +373,7 @@ async function run() {
     res.send(await checkIn(client, data, mydata));
   });
 
-  app.patch('/checkOut', verifyToken, async (req, res) => {
+  app.post('/checkOut', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await checkOut(client, data));
   });

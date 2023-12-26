@@ -149,7 +149,7 @@ async function run() {
  * /loginSecurity:
  *   post:
  *     summary: Login as security
- *     description: Authenticate and log in as security with username, password, name, email, phoneNumber, role, and visitors
+ *     description: Authenticate and log in as security with username and password
  *     tags:
  *       - Security
  *     requestBody:
@@ -163,20 +163,9 @@ async function run() {
  *                 type: string
  *               password:
  *                 type: string
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               phoneNumber:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [Security]
- *               visitors:
- *                 type: array
- *                 items:
- *                   type: string
+ *             required:
+ *               - username
+ *               - password
  *     responses:
  *       '200':
  *         description: Security login successful

@@ -29,7 +29,7 @@ async function run() {
   });
 
   app.get('/', (req, res) => {
-    console.log('Server Group 21 Information Security');
+    res.send('Server Group 21 Information Security');
   });
 
   app.post('/registerAdmin', async (req, res) => {

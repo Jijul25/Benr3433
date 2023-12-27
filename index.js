@@ -482,12 +482,76 @@ async function run() {
     res.send(await deleteUser(client, data));
   });
 
+  /**
+ * @swagger
+ * /checkIn:
+ *   post:
+ *     summary: Check in a visitor
+ *     description: Check in a visitor with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordID:
+ *                 type: string
+ *                 description: The unique record ID for the check-in
+ *               purpose:
+ *                 type: string
+ *                 description: The purpose of the visit
+ *             required:
+ *               - recordID
+ *               - purpose
+ *     responses:
+ *       '200':
+ *         description: Visitor checked in successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found or recordID already in use
+ */
   app.post('/checkIn', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
     res.send(await checkIn(client, data, mydata));
   });
 
+  /**
+ * @swagger
+ * /checkOut:
+ *   patch:
+ *     summary: Check out a visitor
+ *     description: Check out a visitor with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordID:
+ *                 type: string
+ *                 description: The unique record ID for the check-out
+ *             required:
+ *               - recordID
+ *     responses:
+ *       '200':
+ *         description: Visitor checked out successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found or check-in not performed
+ */
   app.post('/checkOut', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await checkOut(client, data));

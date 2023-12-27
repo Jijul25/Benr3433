@@ -352,11 +352,47 @@ async function run() {
     res.send(await read(client, data));
   });
 
+  /**
+ * @swagger
+ * /readSecurity:
+ *   get:
+ *     summary: Read security user data
+ *     description: Read security user data with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Security user data retrieved successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Security user not found
+ */
   app.get('/readSecurity', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await read(client, data));
   });
 
+  /**
+ * @swagger
+ * /readVisitor:
+ *   get:
+ *     summary: Read visitor data
+ *     description: Read visitor data with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Visitor data retrieved successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
+ */
   app.get('/readVisitor', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await read(client, data));

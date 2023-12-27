@@ -111,7 +111,7 @@ async function run() {
  * /loginAdmin:
  *   post:
  *     summary: Login as admin
- *     description: Authenticate and log in as admin with username and password, and receive a token to access /readAdmin
+ *     description: Authenticate and log in as admin with username and password, and receive a token
  *     tags:
  *       - Admin
  *     requestBody:
@@ -132,7 +132,7 @@ async function run() {
  *               - password
  *     responses:
  *       '200':
- *         description: Admin login successful, provides a token to access /readAdmin
+ *         description: Admin login successful, provides a token
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
@@ -146,7 +146,7 @@ async function run() {
  * /loginSecurity:
  *   post:
  *     summary: Login as security
- *     description: Authenticate and log in as security with username and password, and receive a token to access /readSecurity
+ *     description: Authenticate and log in as security with username and password
  *     tags:
  *       - Security
  *     requestBody:
@@ -167,7 +167,7 @@ async function run() {
  *               - password
  *     responses:
  *       '200':
- *         description: Security login successful, provides a token to access /readSecurity
+ *         description: Security login successful
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
@@ -229,15 +229,20 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
+ *                 description: The username of the security
  *               password:
  *                 type: string
+ *                 description: The password of the security
  *               name:
  *                 type: string
+ *                 description: The name of the security
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: The email of the security
  *               phoneNumber:
  *                 type: string
+ *                 description: The phone number of the security
  *             required:
  *               - username
  *               - password
@@ -278,21 +283,29 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
+ *                 description: The username of the visitor
  *               password:
  *                 type: string
+ *                 description: The password of the visitor
  *               name:
  *                 type: string
+ *                 description: The name of the visitor
  *               icNumber:
  *                 type: string
+ *                 description: The IC number of the visitor
  *               company:
  *                 type: string
+ *                 description: The company of the visitor
  *               vehicleNumber:
  *                 type: string
+ *                 description: The vehicle number of the visitor
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: The email of the visitor
  *               phoneNumber:
  *                 type: string
+ *                 description: The phone number of the visitor
  *             required:
  *               - username
  *               - password

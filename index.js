@@ -398,12 +398,85 @@ async function run() {
     res.send(await read(client, data));
   });
 
+  /**
+ * @swagger
+ * /updateVisitor:
+ *   patch:
+ *     summary: Update visitor information
+ *     description: Update visitor information with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: The new password for the visitor
+ *               name:
+ *                 type: string
+ *                 description: The new name for the visitor
+ *               icNumber:
+ *                 type: string
+ *                 description: The new IC number for the visitor
+ *               company:
+ *                 type: string
+ *                 description: The new company for the visitor
+ *               vehicleNumber:
+ *                 type: string
+ *                 description: The new vehicle number for the visitor
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The new email for the visitor
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The new phone number for the visitor
+ *             required:
+ *               - password
+ *               - name
+ *               - icNumber
+ *               - company
+ *               - vehicleNumber
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Visitor information updated successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
+ */
   app.patch('/updateVisitor', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
     res.send(await update(client, data, mydata));
   });
 
+  /**
+ * @swagger
+ * /deleteVisitor:
+ *   delete:
+ *     summary: Delete visitor data
+ *     description: Delete visitor data with a valid token obtained from the loginAdmin endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Visitor data deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
+ */
   app.delete('/deleteVisitor', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await deleteUser(client, data));

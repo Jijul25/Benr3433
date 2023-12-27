@@ -110,10 +110,10 @@ async function run() {
  * @swagger
  * /loginAdmin:
  *   post:
- *     summary: Login as an admin
- *     description: Authenticate and log in as an admin with username and password
+ *     summary: Login as admin
+ *     description: Authenticate and log in as admin with username and password, and receive a token to access /readAdmin
  *     tags:
- *       - Authentication
+ *       - Admin
  *     requestBody:
  *       required: true
  *       content:
@@ -123,22 +123,19 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
+ *                 description: The username of the admin
  *               password:
  *                 type: string
+ *                 description: The password of the admin
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Admin login successful
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
+ *         description: Admin login successful, provides a token to access /readAdmin
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
-
   app.post('/loginAdmin', async (req, res) => {
     let data = req.body;
     res.send(await login(client, data));
@@ -149,7 +146,7 @@ async function run() {
  * /loginSecurity:
  *   post:
  *     summary: Login as security
- *     description: Authenticate and log in as security with username and password
+ *     description: Authenticate and log in as security with username and password, and receive a token to access /readSecurity
  *     tags:
  *       - Security
  *     requestBody:
@@ -161,18 +158,19 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
+ *                 description: The username of the security
  *               password:
  *                 type: string
+ *                 description: The password of the security
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Security login successful
+ *         description: Security login successful, provides a token to access /readSecurity
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
-
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
     res.send(await login(client, data));
@@ -182,8 +180,8 @@ async function run() {
  * @swagger
  * /loginVisitor:
  *   post:
- *     summary: Login as a visitor
- *     description: Authenticate and log in as a visitor with username, password, name, email, security, company, vehicleNumber, icNumber, phoneNumber, role, and records
+ *     summary: Login as visitor
+ *     description: Authenticate and log in as visitor with username and password
  *     tags:
  *       - Visitor
  *     requestBody:
@@ -197,28 +195,9 @@ async function run() {
  *                 type: string
  *               password:
  *                 type: string
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               security:
- *                 type: string
- *               company:
- *                 type: string
- *               vehicleNumber:
- *                 type: string
- *               icNumber:
- *                 type: string
- *               phoneNumber:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [Visitor]
- *               records:
- *                 type: array
- *                 items:
- *                   type: string
+ *             required:
+ *               - username
+ *               - password
  *     responses:
  *       '200':
  *         description: Visitor login successful
@@ -285,7 +264,7 @@ async function run() {
  * /registerVisitor:
  *   post:
  *     summary: Register a new visitor
- *     description: Register a new visitor with username, recordID, purpose, checkInTime, and checkOutTime
+ *     description: Register a new visitor with required details
  *     tags:
  *       - Visitor
  *     security:
@@ -299,37 +278,62 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *               recordID:
+ *               password:
  *                 type: string
- *               purpose:
+ *               name:
  *                 type: string
- *               checkInTime:
+ *               icNumber:
  *                 type: string
- *                 format: date-time
- *               checkOutTime:
+ *               company:
  *                 type: string
- *                 format: date-time
+ *               vehicleNumber:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
  *             required:
  *               - username
- *               - recordID
- *               - purpose
- *               - checkInTime
- *               - checkOutTime
+ *               - password
+ *               - name
+ *               - icNumber
+ *               - company
+ *               - vehicleNumber
+ *               - email
+ *               - phoneNumber
  *     responses:
  *       '200':
- *         description: Visitor registered successfully
+ *         description: Visitor registration successful
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '400':
  *         description: Username already in use, please enter another username
  */
-
   app.post('/registerVisitor', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
 
+  /**
+ * @swagger
+ * /readAdmin:
+ *   get:
+ *     summary: Read admin data
+ *     description: Retrieve admin data using a valid token obtained from /loginAdmin
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Admin data retrieval successful
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
+ */
   app.get('/readAdmin', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await read(client, data));

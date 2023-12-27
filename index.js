@@ -145,8 +145,8 @@ async function run() {
  * @swagger
  * /loginSecurity:
  *   post:
- *     summary: Login as security
- *     description: Authenticate and log in as security with username and password
+ *     summary: Login as a security user
+ *     description: Login as a security user with username and password
  *     tags:
  *       - Security
  *     requestBody:
@@ -158,18 +158,18 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The username of the security
+ *                 description: The username of the security user
  *               password:
  *                 type: string
- *                 description: The password of the security
+ *                 description: The password of the security user
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Security login successful
+ *         description: Login successful
  *       '401':
- *         description: Unauthorized - Invalid credentials
+ *         description: Unauthorized - Invalid username or password
  */
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;

@@ -656,37 +656,40 @@ async function registerAdmin(client, data) {
 }
 
 
-// Update the login function to return an object with success, user, and status
-async function login(client, data, role) {
-    const adminCollection = client.db("assigment").collection("Admin");
-    const securityCollection = client.db("assigment").collection("Security");
-    const usersCollection = client.db("assigment").collection("Users");
+//Function to read data
+async function read(client, data) {
+    if (data.role == 'Admin') {
+      const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).next();
+      const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
+      const Visitors = await client.db('assigment').collection('Users').find({ role: 'Visitor' }).toArray();
+      const Records = await client.db('assigment').collection('Records').find().toArray();
   
-    // Find the user based on the role
-    let match;
-    if (role === 'Admin') {
-      match = await adminCollection.findOne({ username: data.username });
-    } else if (role === 'Security') {
-      match = await securityCollection.findOne({ username: data.username });
-    } else if (role === 'Users'){
-        match = await usersCollection.findOne({ username: data.username });
+      return { Admins, Securitys, Visitors, Records };
     }
   
-    if (match) {
-      // Compare the provided password with the stored password
-      const isPasswordMatch = await decryptPassword(data.password, match.password);
-  
-      if (isPasswordMatch) {
-        console.clear(); // Clear the console
-        return { success: true, user: match };
-      } else {
-        return { success: false, status: 401, message: "Wrong password" };
+    if (data.role == 'Security') {
+      const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
+      if (!Security) {
+        return 'User not found';
       }
-    } else {
-      return { success: false, status: 404, message: "User not found" };
-    }
-  }
   
+      const Visitors = await client.db('assigment').collection('Users').find({ Security: data.username }).toArray();
+      const Records = await client.db('assigment').collection('Records').find().toArray();
+  
+      return { Security, Visitors, Records };
+    }
+  
+    if (data.role == 'Visitor') {
+      const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
+      if (!Visitor) {
+        return 'User not found';
+      }
+  
+      const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
+  
+      return { Visitor, Records };
+    }
+}
 
 
 

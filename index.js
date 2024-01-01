@@ -1,44 +1,64 @@
+const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongodb');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { MongoClient } = require('mongodb');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+
 const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Welcome to web app Secure Info',
-      version: '1.0.0'
-    },
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT'
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Welcome to web app Secure Info',
+            version: '1.0.0'
+        },
+        components: {  // Add 'components' section
+            securitySchemes: {  // Define 'securitySchemes'
+                bearerAuth: {  // Define 'bearerAuth'
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
         }
-      }
-    }
-  },
-  apis: [__filename], // Add the current file to the Swagger definition
+    },
+    apis: ['./index.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
 });
 
-/**
+
+async function run() {
+  await client.connect();
+  await client.db("admin").command({ ping: 1 });
+  console.log("You successfully connected to MongoDB!");
+
+  app.use(express.json());
+  app.listen(port, () => {
+    console.log(`Server listening at http://localSecurity:${port}`);
+  });
+
+  app.get('/', (req, res) => {
+    res.send('Server Group 21 Information Security');
+  });
+
+  /**
  * @swagger
  * /registerAdmin:
  *   post:
@@ -51,13 +71,36 @@ const client = new MongoClient(uri, {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AdminRegistration'
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [Admin]
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - email
+ *               - phoneNumber
+ *               - role
  *     responses:
  *       '200':
  *         description: Admin registered successfully
  *       '400':
  *         description: Username already registered
  */
+  
   app.post('/registerAdmin', async (req, res) => {
     let data = req.body;
     res.send(await registerAdmin(client, data));
@@ -76,7 +119,17 @@ const client = new MongoClient(uri, {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AdminLogin'
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the admin
+ *               password:
+ *                 type: string
+ *                 description: The password of the admin
+ *             required:
+ *               - username
+ *               - password
  *     responses:
  *       '200':
  *         description: Admin login successful, provides a token
@@ -87,55 +140,13 @@ const client = new MongoClient(uri, {
     let data = req.body;
     res.send(await login(client, data));
   });
-  /**
- * @swagger
- * components:
- *   schemas:
- *     AdminRegistration:
- *       type: object
- *       properties:
- *         username:
- *           type: string
- *         password:
- *           type: string
- *         name:
- *           type: string
- *         email:
- *           type: string
- *           format: email
- *         phoneNumber:
- *           type: string
- *         role:
- *           type: string
- *           enum: [Admin]
- *       required:
- *         - username
- *         - password
- *         - name
- *         - email
- *         - phoneNumber
- *         - role
- *
- *     AdminLogin:
- *       type: object
- *       properties:
- *         username:
- *           type: string
- *           description: The username of the admin
- *         password:
- *           type: string
- *           description: The password of the admin
- *       required:
- *         - username
- *         - password
- */
 
   /**
  * @swagger
  * /loginSecurity:
  *   post:
- *     summary: Log in as a security user
- *     description: Log in as a security user with a valid username and password to obtain a token
+ *     summary: Login as a security user
+ *     description: Login as a security user with username and password
  *     tags:
  *       - Security
  *     requestBody:
@@ -147,46 +158,30 @@ const client = new MongoClient(uri, {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The security user's username
+ *                 description: The username of the security user
  *               password:
  *                 type: string
- *                 description: The security user's password
+ *                 description: The password of the security user
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Security user logged in successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: The JWT token for authentication
+ *         description: Login successful
  *       '401':
- *         description: Invalid credentials - username or password is incorrect
- *       '404':
- *         description: Security user not found
+ *         description: Unauthorized - Invalid username or password
  */
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
-    const result = await login(client, data, 'Security'); // Pass the role as 'Security'
-    if (result.success) {
-      const token = generateToken(result.user);
-      res.send({ token });
-    } else {
-      res.status(result.status).send(result.message);
-    }
+    res.send(await login(client, data));
   });
 
   /**
  * @swagger
  * /loginVisitor:
  *   post:
- *     summary: Log in as a visitor
- *     description: Log in as a visitor with a valid username and password to obtain a token
+ *     summary: Login as visitor
+ *     description: Authenticate and log in as visitor with username and password
  *     tags:
  *       - Visitor
  *     requestBody:
@@ -198,39 +193,21 @@ const client = new MongoClient(uri, {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The visitor's username
  *               password:
  *                 type: string
- *                 description: The visitor's password
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Visitor logged in successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: The JWT token for authentication
+ *         description: Visitor login successful
  *       '401':
- *         description: Invalid credentials - username or password is incorrect
- *       '404':
- *         description: Visitor not found
+ *         description: Unauthorized - Invalid credentials
  */
 
   app.post('/loginVisitor', async (req, res) => {
     let data = req.body;
-    const result = await login(client, data, 'Visitor'); // Pass the role as 'Visitor'
-    if (result.success) {
-      const token = generateToken(result.user);
-      res.send({ token });
-    } else {
-      res.status(result.status).send(result.message);
-    }
+    res.send(await login(client, data));
   });
 
   /**
@@ -238,7 +215,7 @@ const client = new MongoClient(uri, {
  * /registerSecurity:
  *   post:
  *     summary: Register a new security user
- *     description: Register a new security user with required details and a valid token from loginSecurity
+ *     description: Register a new security user with username, password, name, email, and phoneNumber
  *     tags:
  *       - Security
  *     security:
@@ -252,20 +229,20 @@ const client = new MongoClient(uri, {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The security user's username
+ *                 description: The username of the security
  *               password:
  *                 type: string
- *                 description: The security user's password
+ *                 description: The password of the security
  *               name:
  *                 type: string
- *                 description: The security user's name
+ *                 description: The name of the security
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The security user's email
+ *                 description: The email of the security
  *               phoneNumber:
  *                 type: string
- *                 description: The security user's phone number
+ *                 description: The phone number of the security
  *             required:
  *               - username
  *               - password
@@ -280,6 +257,7 @@ const client = new MongoClient(uri, {
  *       '400':
  *         description: Username already in use, please enter another username
  */
+
   app.post('/registerSecurity', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
@@ -291,7 +269,7 @@ const client = new MongoClient(uri, {
  * /registerVisitor:
  *   post:
  *     summary: Register a new visitor
- *     description: Register a new visitor with required details and a valid token from loginSecurity
+ *     description: Register a new visitor with required details
  *     tags:
  *       - Visitor
  *     security:
@@ -305,29 +283,29 @@ const client = new MongoClient(uri, {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The visitor's username
+ *                 description: The username of the visitor
  *               password:
  *                 type: string
- *                 description: The visitor's password
+ *                 description: The password of the visitor
  *               name:
  *                 type: string
- *                 description: The visitor's name
+ *                 description: The name of the visitor
  *               icNumber:
  *                 type: string
- *                 description: The visitor's IC number
+ *                 description: The IC number of the visitor
  *               company:
  *                 type: string
- *                 description: The visitor's company
+ *                 description: The company of the visitor
  *               vehicleNumber:
  *                 type: string
- *                 description: The visitor's vehicle number
+ *                 description: The vehicle number of the visitor
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The visitor's email
+ *                 description: The email of the visitor
  *               phoneNumber:
  *                 type: string
- *                 description: The visitor's phone number
+ *                 description: The phone number of the visitor
  *             required:
  *               - username
  *               - password
@@ -351,44 +329,23 @@ const client = new MongoClient(uri, {
     res.send(await register(client, data, mydata));
   });
 
- /**
+  /**
  * @swagger
  * /readAdmin:
  *   get:
- *     summary: Read all data for Admin, Security, and Visitor
- *     description: Retrieve data for Admin, Security, and Visitor with a valid token from loginAdmin
+ *     summary: Read admin data
+ *     description: Retrieve admin data using a valid token obtained from /loginAdmin
  *     tags:
  *       - Admin
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Data retrieval successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 Admins:
- *                   type: object
- *                   description: Data for Admin users
- *                 Securitys:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Security users
- *                 Visitors:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Visitor users
- *                 Records:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Records
+ *         description: Admin data retrieval successful
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
  */
   app.get('/readAdmin', verifyToken, async (req, res) => {
     let data = req.user;
@@ -399,35 +356,19 @@ const client = new MongoClient(uri, {
  * @swagger
  * /readSecurity:
  *   get:
- *     summary: Read data for Security and Visitor
- *     description: Retrieve data for Security and Visitor with a valid token from loginSecurity
+ *     summary: Read security user data
+ *     description: Read security user data with a valid token obtained from the loginAdmin endpoint
  *     tags:
  *       - Security
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Data retrieval successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 Security:
- *                   type: object
- *                   description: Data for the logged-in Security user
- *                 Visitors:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Visitor users associated with the logged-in Security user
- *                 Records:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Records
+ *         description: Security user data retrieved successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Security user not found
  */
   app.get('/readSecurity', verifyToken, async (req, res) => {
     let data = req.user;
@@ -438,30 +379,19 @@ const client = new MongoClient(uri, {
  * @swagger
  * /readVisitor:
  *   get:
- *     summary: Read data for Visitor
- *     description: Retrieve data for Visitor with a valid token from loginSecurity
+ *     summary: Read visitor data
+ *     description: Read visitor data with a valid token obtained from the loginAdmin endpoint
  *     tags:
- *       - Security
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Visitor data retrieval successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 Visitor:
- *                   type: object
- *                   description: Data for the logged-in Security user's associated Visitor(s)
- *                 Records:
- *                   type: array
- *                   items:
- *                     type: object
- *                     description: Data for Records related to the Visitor(s)
+ *         description: Visitor data retrieved successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
  */
   app.get('/readVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -472,10 +402,10 @@ const client = new MongoClient(uri, {
  * @swagger
  * /updateVisitor:
  *   patch:
- *     summary: Update Visitor data
- *     description: Update Visitor data with a valid token from loginSecurity
+ *     summary: Update visitor information
+ *     description: Update visitor information with a valid token obtained from the loginAdmin endpoint
  *     tags:
- *       - Security
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -487,19 +417,26 @@ const client = new MongoClient(uri, {
  *             properties:
  *               password:
  *                 type: string
+ *                 description: The new password for the visitor
  *               name:
  *                 type: string
+ *                 description: The new name for the visitor
  *               icNumber:
  *                 type: string
+ *                 description: The new IC number for the visitor
  *               company:
  *                 type: string
+ *                 description: The new company for the visitor
  *               vehicleNumber:
  *                 type: string
+ *                 description: The new vehicle number for the visitor
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: The new email for the visitor
  *               phoneNumber:
  *                 type: string
+ *                 description: The new phone number for the visitor
  *             required:
  *               - password
  *               - name
@@ -510,11 +447,11 @@ const client = new MongoClient(uri, {
  *               - phoneNumber
  *     responses:
  *       '200':
- *         description: Visitor data updated successfully
+ *         description: Visitor information updated successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: User not found
+ *         description: Visitor not found
  */
   app.patch('/updateVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -526,10 +463,10 @@ const client = new MongoClient(uri, {
  * @swagger
  * /deleteVisitor:
  *   delete:
- *     summary: Delete Visitor data
- *     description: Delete Visitor data with a valid token from loginSecurity
+ *     summary: Delete visitor data
+ *     description: Delete visitor data with a valid token obtained from the loginAdmin endpoint
  *     tags:
- *       - Security
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -538,7 +475,7 @@ const client = new MongoClient(uri, {
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: User not found
+ *         description: Visitor not found
  */
   app.delete('/deleteVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -619,17 +556,6 @@ const client = new MongoClient(uri, {
     let data = req.user;
     res.send(await checkOut(client, data));
   });
-
-
-async function run() {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("You successfully connected to MongoDB!");
-  
-    app.use(express.json());
-    app.listen(port, () => {
-      console.log(`Server listening at http://localSecurity:${port}`);
-    });
 }
 
 run().catch(console.error);
@@ -656,39 +582,41 @@ async function registerAdmin(client, data) {
 }
 
 
-//Function to read data
-async function read(client, data) {
-    if (data.role == 'Admin') {
-      const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).next();
-      const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
-      const Visitors = await client.db('assigment').collection('Users').find({ role: 'Visitor' }).toArray();
-      const Records = await client.db('assigment').collection('Records').find().toArray();
-  
-      return { Admins, Securitys, Visitors, Records };
+//Function to login
+async function login(client, data) {
+  const adminCollection = client.db("assigment").collection("Admin");
+  const securityCollection = client.db("assigment").collection("Security");
+  const usersCollection = client.db("assigment").collection("Users");
+
+  // Find the admin user
+  let match = await adminCollection.findOne({ username: data.username });
+
+  if (!match) {
+    // Find the security user
+    match = await securityCollection.findOne({ username: data.username });
+  }
+
+  if (!match) {
+    // Find the regular user
+    match = await usersCollection.findOne({ username: data.username });
+  }
+
+  if (match) {
+    // Compare the provided password with the stored password
+    const isPasswordMatch = await decryptPassword(data.password, match.password);
+
+    if (isPasswordMatch) {
+      console.clear(); // Clear the console
+      const token = generateToken(match);
+      console.log(output(match.role));
+      return "\nToken for " + match.name + ": " + token;
     }
-  
-    if (data.role == 'Security') {
-      const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
-      if (!Security) {
-        return 'User not found';
-      }
-  
-      const Visitors = await client.db('assigment').collection('Users').find({ Security: data.username }).toArray();
-      const Records = await client.db('assigment').collection('Records').find().toArray();
-  
-      return { Security, Visitors, Records };
+     else {
+      return "Wrong password";
     }
-  
-    if (data.role == 'Visitor') {
-      const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
-      if (!Visitor) {
-        return 'User not found';
-      }
-  
-      const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
-  
-      return { Visitor, Records };
-    }
+  } else {
+    return "User not found";
+  }
 }
 
 
@@ -976,6 +904,4 @@ function verifyToken(req, res, next) {
     next();
   });
 }
-
-
 

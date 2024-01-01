@@ -110,8 +110,8 @@ async function run() {
  * @swagger
  * /loginAdmin:
  *   post:
- *     summary: Log in as an admin
- *     description: Log in as an admin with a valid username and password to obtain a token
+ *     summary: Login as admin
+ *     description: Authenticate and log in as admin with username and password, and receive a token
  *     tags:
  *       - Admin
  *     requestBody:
@@ -123,24 +123,18 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The admin's username
+ *                 description: The username of the admin
  *               password:
  *                 type: string
- *                 description: The admin's password
+ *                 description: The password of the admin
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Admin logged in successfully
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
+ *         description: Admin login successful, provides a token
  *       '401':
- *         description: Invalid credentials - username or password is incorrect
- *       '404':
- *         description: Admin not found
+ *         description: Unauthorized - Invalid credentials
  */
   app.post('/loginAdmin', async (req, res) => {
     let data = req.body;

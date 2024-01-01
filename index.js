@@ -15,7 +15,7 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'VMS API',
+            title: 'Welcome to web app Secure Info',
             version: '1.0.0'
         },
         components: {  // Add 'components' section
@@ -173,7 +173,13 @@ async function run() {
  */
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
-    res.send(await login(client, data));
+    const result = await login(client, data, 'Security'); // Pass the role as 'Security'
+    if (result.success) {
+      const token = generateToken(result.user);
+      res.send({ token });
+    } else {
+      res.status(result.status).send(result.message);
+    }
   });
 
   /**
@@ -207,7 +213,13 @@ async function run() {
 
   app.post('/loginVisitor', async (req, res) => {
     let data = req.body;
-    res.send(await login(client, data));
+    const result = await login(client, data, 'Visitor'); // Pass the role as 'Visitor'
+    if (result.success) {
+      const token = generateToken(result.user);
+      res.send({ token });
+    } else {
+      res.status(result.status).send(result.message);
+    }
   });
 
   /**
@@ -582,42 +594,35 @@ async function registerAdmin(client, data) {
 }
 
 
-//Function to login
-async function login(client, data) {
-  const adminCollection = client.db("assigment").collection("Admin");
-  const securityCollection = client.db("assigment").collection("Security");
-  const usersCollection = client.db("assigment").collection("Users");
-
-  // Find the admin user
-  let match = await adminCollection.findOne({ username: data.username });
-
-  if (!match) {
-    // Find the security user
-    match = await securityCollection.findOne({ username: data.username });
-  }
-
-  if (!match) {
-    // Find the regular user
-    match = await usersCollection.findOne({ username: data.username });
-  }
-
-  if (match) {
-    // Compare the provided password with the stored password
-    const isPasswordMatch = await decryptPassword(data.password, match.password);
-
-    if (isPasswordMatch) {
-      console.clear(); // Clear the console
-      const token = generateToken(match);
-      console.log(output(match.role));
-      return "\nToken for " + match.name + ": " + token;
+// Update the login function to return an object with success, user, and status
+async function login(client, data, role) {
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
+    const usersCollection = client.db("assigment").collection("Users");
+  
+    // Find the user based on the role
+    let match;
+    if (role === 'Security') {
+      match = await securityCollection.findOne({ username: data.username });
+    } else if (role === 'Visitor') {
+      match = await usersCollection.findOne({ username: data.username });
     }
-     else {
-      return "Wrong password";
+  
+    if (match) {
+      // Compare the provided password with the stored password
+      const isPasswordMatch = await decryptPassword(data.password, match.password);
+  
+      if (isPasswordMatch) {
+        console.clear(); // Clear the console
+        return { success: true, user: match };
+      } else {
+        return { success: false, status: 401, message: "Wrong password" };
+      }
+    } else {
+      return { success: false, status: 404, message: "User not found" };
     }
-  } else {
-    return "User not found";
   }
-}
+  
 
 
 

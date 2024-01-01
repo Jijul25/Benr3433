@@ -110,8 +110,8 @@ async function run() {
  * @swagger
  * /loginAdmin:
  *   post:
- *     summary: Login as admin
- *     description: Authenticate and log in as admin with username and password, and receive a token
+ *     summary: Log in as an admin
+ *     description: Log in as an admin with a valid username and password to obtain a token
  *     tags:
  *       - Admin
  *     requestBody:
@@ -123,18 +123,24 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The username of the admin
+ *                 description: The admin's username
  *               password:
  *                 type: string
- *                 description: The password of the admin
+ *                 description: The admin's password
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Admin login successful, provides a token
+ *         description: Admin logged in successfully
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
  *       '401':
- *         description: Unauthorized - Invalid credentials
+ *         description: Invalid credentials - username or password is incorrect
+ *       '404':
+ *         description: Admin not found
  */
   app.post('/loginAdmin', async (req, res) => {
     let data = req.body;
@@ -145,8 +151,8 @@ async function run() {
  * @swagger
  * /loginSecurity:
  *   post:
- *     summary: Login as a security user
- *     description: Login as a security user with username and password
+ *     summary: Log in as a security user
+ *     description: Log in as a security user with a valid username and password to obtain a token
  *     tags:
  *       - Security
  *     requestBody:
@@ -158,18 +164,28 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The username of the security user
+ *                 description: The security user's username
  *               password:
  *                 type: string
- *                 description: The password of the security user
+ *                 description: The security user's password
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Login successful
+ *         description: Security user logged in successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: The JWT token for authentication
  *       '401':
- *         description: Unauthorized - Invalid username or password
+ *         description: Invalid credentials - username or password is incorrect
+ *       '404':
+ *         description: Security user not found
  */
   app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
@@ -186,8 +202,8 @@ async function run() {
  * @swagger
  * /loginVisitor:
  *   post:
- *     summary: Login as visitor
- *     description: Authenticate and log in as visitor with username and password
+ *     summary: Log in as a visitor
+ *     description: Log in as a visitor with a valid username and password to obtain a token
  *     tags:
  *       - Visitor
  *     requestBody:
@@ -199,16 +215,28 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
+ *                 description: The visitor's username
  *               password:
  *                 type: string
+ *                 description: The visitor's password
  *             required:
  *               - username
  *               - password
  *     responses:
  *       '200':
- *         description: Visitor login successful
+ *         description: Visitor logged in successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: The JWT token for authentication
  *       '401':
- *         description: Unauthorized - Invalid credentials
+ *         description: Invalid credentials - username or password is incorrect
+ *       '404':
+ *         description: Visitor not found
  */
 
   app.post('/loginVisitor', async (req, res) => {
@@ -227,7 +255,7 @@ async function run() {
  * /registerSecurity:
  *   post:
  *     summary: Register a new security user
- *     description: Register a new security user with username, password, name, email, and phoneNumber
+ *     description: Register a new security user with required details and a valid token from loginSecurity
  *     tags:
  *       - Security
  *     security:
@@ -241,20 +269,20 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The username of the security
+ *                 description: The security user's username
  *               password:
  *                 type: string
- *                 description: The password of the security
+ *                 description: The security user's password
  *               name:
  *                 type: string
- *                 description: The name of the security
+ *                 description: The security user's name
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The email of the security
+ *                 description: The security user's email
  *               phoneNumber:
  *                 type: string
- *                 description: The phone number of the security
+ *                 description: The security user's phone number
  *             required:
  *               - username
  *               - password
@@ -269,7 +297,6 @@ async function run() {
  *       '400':
  *         description: Username already in use, please enter another username
  */
-
   app.post('/registerSecurity', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
@@ -281,7 +308,7 @@ async function run() {
  * /registerVisitor:
  *   post:
  *     summary: Register a new visitor
- *     description: Register a new visitor with required details
+ *     description: Register a new visitor with required details and a valid token from loginSecurity
  *     tags:
  *       - Visitor
  *     security:
@@ -295,29 +322,29 @@ async function run() {
  *             properties:
  *               username:
  *                 type: string
- *                 description: The username of the visitor
+ *                 description: The visitor's username
  *               password:
  *                 type: string
- *                 description: The password of the visitor
+ *                 description: The visitor's password
  *               name:
  *                 type: string
- *                 description: The name of the visitor
+ *                 description: The visitor's name
  *               icNumber:
  *                 type: string
- *                 description: The IC number of the visitor
+ *                 description: The visitor's IC number
  *               company:
  *                 type: string
- *                 description: The company of the visitor
+ *                 description: The visitor's company
  *               vehicleNumber:
  *                 type: string
- *                 description: The vehicle number of the visitor
+ *                 description: The visitor's vehicle number
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The email of the visitor
+ *                 description: The visitor's email
  *               phoneNumber:
  *                 type: string
- *                 description: The phone number of the visitor
+ *                 description: The visitor's phone number
  *             required:
  *               - username
  *               - password
@@ -341,23 +368,44 @@ async function run() {
     res.send(await register(client, data, mydata));
   });
 
-  /**
+ /**
  * @swagger
  * /readAdmin:
  *   get:
- *     summary: Read admin data
- *     description: Retrieve admin data using a valid token obtained from /loginAdmin
+ *     summary: Read all data for Admin, Security, and Visitor
+ *     description: Retrieve data for Admin, Security, and Visitor with a valid token from loginAdmin
  *     tags:
  *       - Admin
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Admin data retrieval successful
+ *         description: Data retrieval successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Admins:
+ *                   type: object
+ *                   description: Data for Admin users
+ *                 Securitys:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Security users
+ *                 Visitors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Visitor users
+ *                 Records:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Records
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
- *       '403':
- *         description: Forbidden - Token is not associated with admin access
  */
   app.get('/readAdmin', verifyToken, async (req, res) => {
     let data = req.user;
@@ -368,19 +416,35 @@ async function run() {
  * @swagger
  * /readSecurity:
  *   get:
- *     summary: Read security user data
- *     description: Read security user data with a valid token obtained from the loginAdmin endpoint
+ *     summary: Read data for Security and Visitor
+ *     description: Retrieve data for Security and Visitor with a valid token from loginSecurity
  *     tags:
  *       - Security
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Security user data retrieved successfully
+ *         description: Data retrieval successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Security:
+ *                   type: object
+ *                   description: Data for the logged-in Security user
+ *                 Visitors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Visitor users associated with the logged-in Security user
+ *                 Records:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Records
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Security user not found
  */
   app.get('/readSecurity', verifyToken, async (req, res) => {
     let data = req.user;
@@ -391,19 +455,30 @@ async function run() {
  * @swagger
  * /readVisitor:
  *   get:
- *     summary: Read visitor data
- *     description: Read visitor data with a valid token obtained from the loginAdmin endpoint
+ *     summary: Read data for Visitor
+ *     description: Retrieve data for Visitor with a valid token from loginSecurity
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Visitor data retrieved successfully
+ *         description: Visitor data retrieval successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Visitor:
+ *                   type: object
+ *                   description: Data for the logged-in Security user's associated Visitor(s)
+ *                 Records:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Data for Records related to the Visitor(s)
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found
  */
   app.get('/readVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -414,10 +489,10 @@ async function run() {
  * @swagger
  * /updateVisitor:
  *   patch:
- *     summary: Update visitor information
- *     description: Update visitor information with a valid token obtained from the loginAdmin endpoint
+ *     summary: Update Visitor data
+ *     description: Update Visitor data with a valid token from loginSecurity
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -429,26 +504,19 @@ async function run() {
  *             properties:
  *               password:
  *                 type: string
- *                 description: The new password for the visitor
  *               name:
  *                 type: string
- *                 description: The new name for the visitor
  *               icNumber:
  *                 type: string
- *                 description: The new IC number for the visitor
  *               company:
  *                 type: string
- *                 description: The new company for the visitor
  *               vehicleNumber:
  *                 type: string
- *                 description: The new vehicle number for the visitor
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The new email for the visitor
  *               phoneNumber:
  *                 type: string
- *                 description: The new phone number for the visitor
  *             required:
  *               - password
  *               - name
@@ -459,11 +527,11 @@ async function run() {
  *               - phoneNumber
  *     responses:
  *       '200':
- *         description: Visitor information updated successfully
+ *         description: Visitor data updated successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: Visitor not found
+ *         description: User not found
  */
   app.patch('/updateVisitor', verifyToken, async (req, res) => {
     let data = req.user;
@@ -475,10 +543,10 @@ async function run() {
  * @swagger
  * /deleteVisitor:
  *   delete:
- *     summary: Delete visitor data
- *     description: Delete visitor data with a valid token obtained from the loginAdmin endpoint
+ *     summary: Delete Visitor data
+ *     description: Delete Visitor data with a valid token from loginSecurity
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -487,7 +555,7 @@ async function run() {
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: Visitor not found
+ *         description: User not found
  */
   app.delete('/deleteVisitor', verifyToken, async (req, res) => {
     let data = req.user;

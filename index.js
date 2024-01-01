@@ -1,64 +1,44 @@
-const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongodb');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { MongoClient } = require('mongodb');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
-
 const options = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Welcome to web app Secure Info',
-            version: '1.0.0'
-        },
-        components: {  // Add 'components' section
-            securitySchemes: {  // Define 'securitySchemes'
-                bearerAuth: {  // Define 'bearerAuth'
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT'
-                }
-            }
-        }
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Welcome to web app Secure Info',
+      version: '1.0.0'
     },
-    apis: ['./index.js'],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    }
+  },
+  apis: [__filename], // Add the current file to the Swagger definition
 };
 
 const swaggerSpec = swaggerJsdoc(options);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-
-async function run() {
-  await client.connect();
-  await client.db("admin").command({ ping: 1 });
-  console.log("You successfully connected to MongoDB!");
-
-  app.use(express.json());
-  app.listen(port, () => {
-    console.log(`Server listening at http://localSecurity:${port}`);
-  });
-
-  app.get('/', (req, res) => {
-    res.send('Server Group 21 Information Security');
-  });
-
-  /**
+/**
  * @swagger
  * /registerAdmin:
  *   post:
@@ -71,36 +51,13 @@ async function run() {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               phoneNumber:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [Admin]
- *             required:
- *               - username
- *               - password
- *               - name
- *               - email
- *               - phoneNumber
- *               - role
+ *             $ref: '#/components/schemas/AdminRegistration'
  *     responses:
  *       '200':
  *         description: Admin registered successfully
  *       '400':
  *         description: Username already registered
  */
-  
   app.post('/registerAdmin', async (req, res) => {
     let data = req.body;
     res.send(await registerAdmin(client, data));
@@ -119,17 +76,7 @@ async function run() {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *                 description: The username of the admin
- *               password:
- *                 type: string
- *                 description: The password of the admin
- *             required:
- *               - username
- *               - password
+ *             $ref: '#/components/schemas/AdminLogin'
  *     responses:
  *       '200':
  *         description: Admin login successful, provides a token
@@ -140,6 +87,48 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
+  /**
+ * @swagger
+ * components:
+ *   schemas:
+ *     AdminRegistration:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *         password:
+ *           type: string
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         phoneNumber:
+ *           type: string
+ *         role:
+ *           type: string
+ *           enum: [Admin]
+ *       required:
+ *         - username
+ *         - password
+ *         - name
+ *         - email
+ *         - phoneNumber
+ *         - role
+ *
+ *     AdminLogin:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: The username of the admin
+ *         password:
+ *           type: string
+ *           description: The password of the admin
+ *       required:
+ *         - username
+ *         - password
+ */
 
   /**
  * @swagger
@@ -630,6 +619,17 @@ async function run() {
     let data = req.user;
     res.send(await checkOut(client, data));
   });
+
+
+async function run() {
+    await client.connect();
+    await client.db("admin").command({ ping: 1 });
+    console.log("You successfully connected to MongoDB!");
+  
+    app.use(express.json());
+    app.listen(port, () => {
+      console.log(`Server listening at http://localSecurity:${port}`);
+    });
 }
 
 run().catch(console.error);

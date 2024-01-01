@@ -664,10 +664,12 @@ async function login(client, data, role) {
   
     // Find the user based on the role
     let match;
-    if (role === 'Security') {
+    if (role === 'Admin') {
+      match = await adminCollection.findOne({ username: data.username });
+    } else if (role === 'Security') {
       match = await securityCollection.findOne({ username: data.username });
-    } else if (role === 'Visitor') {
-      match = await usersCollection.findOne({ username: data.username });
+    } else if (role === 'Users'){
+        match = await usersCollection.findOne({ username: data.username });
     }
   
     if (match) {

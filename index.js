@@ -142,7 +142,6 @@ async function run() {
   });
 
   
-
   /**
  * @swagger
  * /loginSecurity:
@@ -317,7 +316,7 @@ async function run() {
 app.post('/VisitorPass', verifyToken, async (req, res) => {
     let data = req.user;
     let passData = req.body;
-    res.send(await issuePass(client, data, passData));
+    res.send(await VisitorPass(client, data, passData));
 });
 
 /**
@@ -353,77 +352,6 @@ app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) 
     res.send(await retrieveContactNumber(client, data, passIdentifier));
 });
 
-/**
- * @swagger
- * /updateSecurity:
- *   put:
- *     summary: Update security user data
- *     description: Update security user data with a valid token obtained from loginSecurity
- *     tags:
- *       - Security
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               password:
- *                 type: string
- *                 description: The updated password of the security user
- *               name:
- *                 type: string
- *                 description: The updated name of the security user
- *               email:
- *                 type: string
- *                 format: email
- *                 description: The updated email of the security user
- *               phoneNumber:
- *                 type: string
- *                 description: The updated phone number of the security user
- *             required:
- *               - password
- *               - name
- *               - email
- *               - phoneNumber
- *     responses:
- *       '200':
- *         description: Security user data updated successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Security user not found
- */
-app.put('/updateSecurity', verifyToken, async (req, res) => {
-    let data = req.user;
-    let updatedData = req.body;
-    res.send(await update(client, data, updatedData, 'Security'));
-});
-
-/**
- * @swagger
- * /deleteSecurity:
- *   delete:
- *     summary: Delete security user data
- *     description: Delete security user data with a valid token obtained from loginSecurity
- *     tags:
- *       - Security
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: Security user data deleted successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Security user not found
- */
-app.delete('/deleteSecurity', verifyToken, async (req, res) => {
-    let data = req.user;
-    res.send(await deleteUser(client, data, 'Security'));
-});
 
 }
 
@@ -558,7 +486,7 @@ async function register(client, data, mydata) {
 }
 
 // Function to issue a pass
-async function issuePass(client, data, passData) {
+async function VisitorPass(client, data, passData) {
     const passesCollection = client.db('assigment').collection('Passes');
     const usersCollection = client.db('assigment').collection('Users');
 
@@ -571,11 +499,11 @@ async function issuePass(client, data, passData) {
     const passIdentifier = generatePassIdentifier();
 
     // Store the pass details in the database or any other desired storage
-    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, phoneNumber }
+    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, passDetails }
     const passRecord = {
         passIdentifier: passIdentifier,
         visitorUsername: passData.visitorUsername,
-        phoneNumber: passData.phoneNumber || '',
+        passDetails: passData.passDetails || '',
         issuedBy: data.username, // Security user who issued the pass
         issueTime: new Date()
     };
@@ -589,7 +517,7 @@ async function issuePass(client, data, passData) {
 
 // Function to retrieve contact number from visitor pass
 async function retrieveContactNumber(client, data, passIdentifier) {
-    if (data.role !== 'Security') {
+    if (data.role !== 'Admin') {
         return 'You do not have the authority to retrieve contact numbers.';
     }
 

@@ -552,10 +552,11 @@ async function run() {
  *       '404':
  *         description: Visitor not found or check-in not performed
  */
-  app.post('/checkOut', verifyToken, async (req, res) => {
-    let data = req.user;
-    res.send(await checkOut(client, data));
-  });
+    app.post('/checkOut', verifyToken, async (req, res) => {
+        let data = req.user;
+        res.send(await checkOut(client, data));
+    });
+  
 }
 
 run().catch(console.error);

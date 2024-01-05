@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
+
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -41,19 +42,23 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-  await client.connect();
-  await client.db("admin").command({ ping: 1 });
-  console.log("You successfully connected to MongoDB!");
-
-  app.use(express.json());
-  app.listen(port, () => {
-    console.log(`Server listening at http://localSecurity:${port}`);
-  });
-
-  app.get('/', (req, res) => {
-    res.send('Server Group 21 Information Security');
-  });
-}
+    try {
+      await client.connect();
+      await client.db("admin").command({ ping: 1 });
+      console.log("You successfully connected to MongoDB!");
+  
+      app.use(express.json());
+      app.listen(port, () => {
+        console.log(`Server listening at http://localSecurity:${port}`);
+      });
+  
+      app.get('/', (req, res) => {
+        res.send('Server Group 21 Information Security');
+      });
+    } catch (error) {
+      console.error("MongoDB connection error:", error);
+    }
+  }
 
   /**
  * @swagger
@@ -863,7 +868,6 @@ async function deleteUser(client, data) {
 
   return "Delete Successful\nBut the records are still in the database";
 }
-
 
 
 //Function to output

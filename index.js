@@ -525,7 +525,7 @@ async function run() {
   /**
  * @swagger
  * /checkOut:
- *   patch:
+ *   post:
  *     summary: Check out a visitor
  *     description: Check out a visitor with a valid token obtained from the loginVisitor endpoint
  *     tags:

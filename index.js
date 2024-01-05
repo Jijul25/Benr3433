@@ -870,6 +870,7 @@ async function checkOut(client, data) {
   
     return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
 }
+
   
 
 

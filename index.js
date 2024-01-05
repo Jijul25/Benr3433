@@ -141,48 +141,7 @@ async function run() {
     res.send(await login(client, data));
   });
 
-  /**
- * @swagger
- * /manageAccountRoles:
- *   post:
- *     summary: Manage account roles
- *     description: Manage the roles of admin and security accounts (Only accessible by authenticated administrator)
- *     tags:
- *       - Admin
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *                 description: The username of the account to be managed
- *               role:
- *                 type: string
- *                 enum: [Admin, Security]
- *                 description: The desired role for the account
- *             required:
- *               - username
- *               - role
- *     responses:
- *       '200':
- *         description: Account role updated successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '403':
- *         description: Forbidden - Token is not associated with admin access
- *       '404':
- *         description: Account not found
- */
-app.post('/manageAccountRoles', verifyToken, async (req, res) => {
-    let data = req.user;
-    let accountData = req.body;
-    res.send(await manageAccountRoles(client, data, accountData));
-});
+  
 
   /**
  * @swagger
@@ -355,7 +314,7 @@ app.post('/manageAccountRoles', verifyToken, async (req, res) => {
  *       '404':
  *         description: Visitor not found
  */
-app.post('/issuePass', verifyToken, async (req, res) => {
+app.post('/VisitorPass', verifyToken, async (req, res) => {
     let data = req.user;
     let passData = req.body;
     res.send(await issuePass(client, data, passData));
@@ -394,6 +353,77 @@ app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) 
     res.send(await retrieveContactNumber(client, data, passIdentifier));
 });
 
+/**
+ * @swagger
+ * /updateSecurity:
+ *   put:
+ *     summary: Update security user data
+ *     description: Update security user data with a valid token obtained from loginSecurity
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: The updated password of the security user
+ *               name:
+ *                 type: string
+ *                 description: The updated name of the security user
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The updated email of the security user
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The updated phone number of the security user
+ *             required:
+ *               - password
+ *               - name
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Security user data updated successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Security user not found
+ */
+app.put('/updateSecurity', verifyToken, async (req, res) => {
+    let data = req.user;
+    let updatedData = req.body;
+    res.send(await update(client, data, updatedData, 'Security'));
+});
+
+/**
+ * @swagger
+ * /deleteSecurity:
+ *   delete:
+ *     summary: Delete security user data
+ *     description: Delete security user data with a valid token obtained from loginSecurity
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Security user data deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Security user not found
+ */
+app.delete('/deleteSecurity', verifyToken, async (req, res) => {
+    let data = req.user;
+    res.send(await deleteUser(client, data, 'Security'));
+});
 
 }
 
@@ -586,37 +616,6 @@ async function retrieveContactNumber(client, data, passIdentifier) {
     };
 }
 
-// Function to manage account roles
-async function manageAccountRoles(client, data, accountData) {
-    if (data.role !== 'Admin') {
-        return 'You do not have the authority to manage account roles.';
-    }
-
-    const { username, role } = accountData;
-
-    const adminCollection = client.db('assigment').collection('Admin');
-    const securityCollection = client.db('assigment').collection('Security');
-
-    let collectionToUpdate;
-    if (role === 'Admin') {
-        collectionToUpdate = adminCollection;
-    } else if (role === 'Security') {
-        collectionToUpdate = securityCollection;
-    } else {
-        return 'Invalid role specified';
-    }
-
-    const result = await collectionToUpdate.updateOne(
-        { username: username },
-        { $set: { role: role } }
-    );
-
-    if (result.matchedCount === 0) {
-        return 'Account not found';
-    }
-
-    return 'Account role updated successfully';
-}
 
 // Function to read data
 async function read(client, data) {

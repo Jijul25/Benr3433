@@ -571,11 +571,11 @@ async function issuePass(client, data, passData) {
     const passIdentifier = generatePassIdentifier();
 
     // Store the pass details in the database or any other desired storage
-    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, passDetails }
+    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, phoneNumber }
     const passRecord = {
         passIdentifier: passIdentifier,
         visitorUsername: passData.visitorUsername,
-        passDetails: passData.passDetails || '',
+        phoneNumber: passData.phoneNumber || '',
         issuedBy: data.username, // Security user who issued the pass
         issueTime: new Date()
     };

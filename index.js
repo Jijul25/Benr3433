@@ -389,7 +389,7 @@ async function run() {
 
   /**
  * @swagger
- * /issueVisitorPass:
+ * /VisitorPass:
  *   post:
  *     summary: Issue a visitor pass
  *     description: Authenticated security can issue a visitor pass with details provided.
@@ -429,7 +429,7 @@ async function run() {
  *       '500':
  *         description: Internal Server Error - Failed to issue visitor pass
  */
-app.post('/issueVisitorPass', verifyToken, async (req, res) => {
+app.post('/VisitorPass', verifyToken, async (req, res) => {
     try {
       const securityData = req.user;
       const visitorData = req.body;

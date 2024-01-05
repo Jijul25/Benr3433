@@ -465,21 +465,17 @@ async function login(client, data) {
   }
 }
 
-
-
 //Function to encrypt password
 async function encryptPassword(password) {
   const hash = await bcrypt.hash(password, saltRounds); 
   return hash 
 }
 
-
 //Function to decrypt password
 async function decryptPassword(password, compare) {
   const match = await bcrypt.compare(password, compare)
   return match
 }
-
 
 //Function to register security and visitor
 async function register(client, data, mydata) {
@@ -705,21 +701,22 @@ function output(data) {
 
 //to verify JWT Token
 function verifyToken(req, res, next) {
-  let header = req.headers.authorization;
-
-  if (!header) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  let token = header.split(' ')[1];
-
-  jwt.verify(token, 'julpassword', function(err, decoded) {
-    if (err) {
-      console.error(err);
-      return res.status(401).send('Invalid token');
+    let header = req.headers.authorization;
+  
+    if (!header || !header.startsWith('Bearer ')) {
+      return res.status(401).send('Unauthorized');
     }
-
-    req.user = decoded;
-    next();
-  });
-}}
+  
+    let token = header.split(' ')[1];
+  
+    jwt.verify(token, 'julpassword', function (err, decoded) {
+      if (err) {
+        console.error(err);
+        return res.status(401).send('Invalid token');
+      }
+  
+      req.user = decoded;
+      next();
+    });
+  }
+}

@@ -53,6 +53,8 @@ async function run() {
   app.get('/', (req, res) => {
     res.send('Server Group 21 Information Security');
   });
+}
+
   /**
  * @swagger
  * /registerAdmin:
@@ -222,7 +224,7 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
-  
+
   /**
  * @swagger
  * /readAdmin:
@@ -402,81 +404,106 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
         res.send(await retrievePass(client, data, passIdentifier));
     });
   
-  /**
- * @swagger
- * /checkIn:
- *   post:
- *     summary: Check in a visitor
- *     description: Check in a visitor with a valid token obtained from the loginVisitor endpoint
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recordID:
- *                 type: string
- *                 description: The unique record ID for the check-in
- *               purpose:
- *                 type: string
- *                 description: The purpose of the visit
- *             required:
- *               - recordID
- *               - purpose
- *     responses:
- *       '200':
- *         description: Visitor checked in successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found or recordID already in use
- */
   app.post('/checkIn', verifyToken, async (req, res) => {
-    let data = req.user;
-    let mydata = req.body;
-    res.send(await checkIn(client, data, mydata));
-  });
-  /**
- * @swagger
- * /checkOut:
- *   post:
- *     summary: Check out a visitor
- *     description: Check out a visitor with a valid token obtained from the loginVisitor endpoint
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recordID:
- *                 type: string
- *                 description: The unique record ID for the check-out
- *             required:
- *               - recordID
- *     responses:
- *       '200':
- *         description: Visitor checked out successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found or check-in not performed
- */
-    app.post('/checkOut', verifyToken, async (req, res) => {
-        let data = req.user;
-        res.send(await checkOut(client, data));
-    });
-  
-}
+    try {
+        const data = req.user;
+        const mydata = req.body;
+
+        // Ensure only visitors can access check-in
+        if (data.role !== 'Visitor') {
+            return res.status(401).send('Only visitors can access check-in.');
+        }
+
+        const currentUser = await client.db('assigment').collection('Users').findOne({ username: data.username });
+
+        if (!currentUser) {
+            return res.status(404).send('User not found');
+        }
+
+        if (currentUser.currentCheckIn) {
+            return res.status(400).send('Already checked in, please check out first!!!');
+        }
+
+        const existingRecord = await client.db('assigment').collection('Records').findOne({ recordID: mydata.recordID });
+
+        if (existingRecord) {
+            return res.status(400).send(`The recordID '${mydata.recordID}' is already in use. Please enter another recordID.`);
+        }
+
+        const currentCheckInTime = new Date();
+
+        const recordData = {
+            username: data.username,
+            recordID: mydata.recordID,
+            purpose: mydata.purpose,
+            checkInTime: currentCheckInTime
+        };
+
+        await client.db('assigment').collection('Records').insertOne(recordData);
+
+        await client.db('assigment').collection('Users').updateOne(
+            { username: data.username },
+            {
+                $set: { currentCheckIn: mydata.recordID },
+                $push: { records: mydata.recordID }
+            }
+        );
+
+        res.status(200).send(`You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Internal Server Error - Failed to check in');
+    }
+});
+
+  // Function to check out
+app.post('/checkOut', verifyToken, async (req, res) => {
+    try {
+        const data = req.user;
+
+        // Ensure only visitors can access check-out
+        if (data.role !== 'Visitor') {
+            return res.status(401).send('Only visitors can access check-out.');
+        }
+
+        const currentUser = await client.db('assigment').collection('Users').findOne({ username: data.username });
+
+        if (!currentUser) {
+            return res.status(404).send('User not found');
+        }
+
+        if (!currentUser.currentCheckIn) {
+            return res.status(400).send('You have not checked in yet, please check in first!!!');
+        }
+
+        const checkOutTime = new Date();
+
+        // Update the check-out time in the Records collection
+        const updateResult = await client.db('assigment').collection('Records').updateOne(
+            { recordID: currentUser.currentCheckIn },
+            { $set: { checkOutTime: checkOutTime } }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+            return res.status(500).send('Failed to update check-out time. Please try again.');
+        }
+
+        // Unset the currentCheckIn field in the Users collection
+        const unsetResult = await client.db('assigment').collection('Users').updateOne(
+            { username: currentUser.username },
+            { $unset: { currentCheckIn: '' } }
+        );
+
+        if (unsetResult.modifiedCount === 0) {
+            return res.status(500).send('Failed to check out. Please try again.');
+        }
+
+        res.status(200).send(`You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Internal Server Error - Failed to check out');
+    }
+});
 
 run().catch(console.error);
 
@@ -777,92 +804,6 @@ async function deleteUser(client, data) {
 }
 
 
-//Function to check in
-async function checkIn(client, data, mydata) {
-  const usersCollection = client.db('assigment').collection('Users');
-  const recordsCollection = client.db('assigment').collection('Records');
-
-  const currentUser = await usersCollection.findOne({ username: data.username });
-
-  if (!currentUser) {
-    return 'User not found';
-  }
-
-  if (currentUser.currentCheckIn) {
-    return 'Already checked in, please check out first!!!';
-  }
-
-  if (data.role !== 'Visitor') {
-    return 'Only visitors can access check-in.';
-  }
-
-  const existingRecord = await recordsCollection.findOne({ recordID: mydata.recordID });
-
-  if (existingRecord) {
-    return `The recordID '${mydata.recordID}' is already in use. Please enter another recordID.`;
-  }
-
-  const currentCheckInTime = new Date();
-
-  const recordData = {
-    username: data.username,
-    recordID: mydata.recordID,
-    purpose: mydata.purpose,
-    checkInTime: currentCheckInTime
-  };
-
-  await recordsCollection.insertOne(recordData);
-
-  await usersCollection.updateOne(
-    { username: data.username },
-    {
-      $set: { currentCheckIn: mydata.recordID },
-      $push: { records: mydata.recordID }
-    }
-  );
-
-  return `You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`;
-}
-
-// Function to check out
-async function checkOut(client, data) {
-    const usersCollection = client.db('assigment').collection('Users');
-    const recordsCollection = client.db('assigment').collection('Records');
-  
-    const currentUser = await usersCollection.findOne({ username: data.username });
-  
-    if (!currentUser) {
-      return 'User not found';
-    }
-  
-    if (!currentUser.currentCheckIn) {
-      return 'You have not checked in yet, please check in first!!!';
-    }
-  
-    const checkOutTime = new Date();
-  
-    // Update the check-out time in the Records collection
-    const updateResult = await recordsCollection.updateOne(
-      { recordID: currentUser.currentCheckIn },
-      { $set: { checkOutTime: checkOutTime } }
-    );
-  
-    if (updateResult.modifiedCount === 0) {
-      return 'Failed to update check-out time. Please try again.';
-    }
-  
-    // Unset the currentCheckIn field in the Users collection
-    const unsetResult = await usersCollection.updateOne(
-      { username: currentUser.username },
-      { $unset: { currentCheckIn: '' } }
-    );
-  
-    if (unsetResult.modifiedCount === 0) {
-      return 'Failed to check out. Please try again.';
-    }
-  
-    return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
-}
 
 //Function to output
 function output(data) {

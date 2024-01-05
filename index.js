@@ -222,70 +222,7 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
-  /**
- * @swagger
- * /registerVisitor:
- *   post:
- *     summary: Register a new visitor
- *     description: Register a new visitor with required details that need token from loginSecurity to be done
- *     tags:
- *       - Security
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *                 description: The username of the visitor
- *               password:
- *                 type: string
- *                 description: The password of the visitor
- *               name:
- *                 type: string
- *                 description: The name of the visitor
- *               icNumber:
- *                 type: string
- *                 description: The IC number of the visitor
- *               company:
- *                 type: string
- *                 description: The company of the visitor
- *               vehicleNumber:
- *                 type: string
- *                 description: The vehicle number of the visitor
- *               email:
- *                 type: string
- *                 format: email
- *                 description: The email of the visitor
- *               phoneNumber:
- *                 type: string
- *                 description: The phone number of the visitor
- *             required:
- *               - username
- *               - password
- *               - name
- *               - icNumber
- *               - company
- *               - vehicleNumber
- *               - email
- *               - phoneNumber
- *     responses:
- *       '200':
- *         description: Visitor registration successful
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '400':
- *         description: Username already in use, please enter another username
- */
-  app.post('/registerVisitor', verifyToken, async (req, res) => {
-    let data = req.user;
-    let mydata = req.body;
-    res.send(await register(client, data, mydata));
-  });
+  
   /**
  * @swagger
  * /readAdmin:

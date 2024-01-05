@@ -217,7 +217,7 @@ async function run() {
  *     summary: Register a new security user
  *     description: Register a new security user with username, password, name, email, and phoneNumber
  *     tags:
- *       - Security
+ *       - Admin
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -271,7 +271,7 @@ async function run() {
  *     summary: Register a new visitor
  *     description: Register a new visitor with required details that need token from loginSecurity to be done
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     requestBody:

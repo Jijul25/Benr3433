@@ -229,26 +229,27 @@ async function run() {
  *         description: Forbidden - Only admin can register security users
  */
 
-app.post('/registerSecurity', verifyToken, async (req, res) => {
-    let data = req.user;
-    let mydata = req.body;
+  app.post('/registerSecurity', verifyToken, async (req, res) => {
+    let userData = req.user;
+    let additionalData = req.body;
 
     // Check if the user role is Admin
-    if (data.role !== 'Admin') {
+    if (userData.role !== 'Admin') {
         return res.status(403).send('Forbidden - Only admin can register security users');
     }
 
     // Check if the username is already in use
-    const usernameExists = await client.db("assigment").collection("Security").findOne({ username: mydata.username });
+    const usernameExists = await client.db("assigment").collection("Security").findOne({ username: additionalData.username });
     if (usernameExists) {
         return res.status(400).send('Username already in use, please enter another username');
     }
 
     // Register the security user
-    const result = await register(client, data, mydata);
+    const result = await register(client, userData, additionalData);
 
     res.send(result);
 });
+
 
 
   
@@ -524,14 +525,10 @@ async function decryptPassword(password, compare) {
 
 //Function to register security and visitor
 async function register(client, data, mydata) {
-  const adminCollection = client.db("assigment").collection("Admin");
-  const securityCollection = client.db("assigment").collection("Security");
-
-
-  const tempAdmin = await adminCollection.findOne({ username: mydata.username });
-  const tempSecurity = await securityCollection.findOne({ username: mydata.username });
-  const tempUser = await usersCollection.findOne({ username: mydata.username });
-
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
+    const usersCollection = client.db("assigment").collection("Users");  
+  
   if (tempAdmin || tempSecurity || tempUser) {
     return "Username already in use, please enter another username";
   }

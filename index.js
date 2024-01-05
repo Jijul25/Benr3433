@@ -403,7 +403,45 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
         let passIdentifier = req.params.passIdentifier;
         res.send(await retrievePass(client, data, passIdentifier));
     });
-  
+
+/**
+ * @swagger
+ * /checkIn:
+ *   post:
+ *     summary: Check-in for visitors
+ *     description: Allows visitors to check-in, recording their visit details.
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordID:
+ *                 type: string
+ *                 description: The unique identifier for the visit record.
+ *               purpose:
+ *                 type: string
+ *                 description: The purpose of the visit.
+ *             required:
+ *               - recordID
+ *               - purpose
+ *     responses:
+ *       '200':
+ *         description: Visitor checked in successfully
+ *       '400':
+ *         description: Bad Request - Visitor is already checked in or recordID is already in use
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Not Found - Visitor not found
+ *       '500':
+ *         description: Internal Server Error - Failed to check in
+ */
   app.post('/checkIn', verifyToken, async (req, res) => {
     try {
         const data = req.user;
@@ -456,6 +494,28 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /checkOut:
+ *   post:
+ *     summary: Check-out for visitors
+ *     description: Allows visitors to check-out, updating their visit record with check-out time.
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Visitor checked out successfully
+ *       '400':
+ *         description: Bad Request - Visitor has not checked in yet
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Not Found - Visitor not found
+ *       '500':
+ *         description: Internal Server Error - Failed to check out
+ */
   // Function to check out
 app.post('/checkOut', verifyToken, async (req, res) => {
     try {

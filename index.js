@@ -143,6 +143,49 @@ async function run() {
 
   /**
  * @swagger
+ * /manageAccountRoles:
+ *   post:
+ *     summary: Manage account roles
+ *     description: Manage the roles of admin and security accounts (Only accessible by authenticated administrator)
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the account to be managed
+ *               role:
+ *                 type: string
+ *                 enum: [Admin, Security]
+ *                 description: The desired role for the account
+ *             required:
+ *               - username
+ *               - role
+ *     responses:
+ *       '200':
+ *         description: Account role updated successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
+ *       '404':
+ *         description: Account not found
+ */
+app.post('/manageAccountRoles', verifyToken, async (req, res) => {
+    let data = req.user;
+    let accountData = req.body;
+    res.send(await manageAccountRoles(client, data, accountData));
+});
+
+  /**
+ * @swagger
  * /loginSecurity:
  *   post:
  *     summary: Login as a security user
@@ -281,7 +324,7 @@ async function run() {
 
   /**
  * @swagger
- * /issuePass:
+ * /VisitorPass:
  *   post:
  *     summary: Issue a visitor pass
  *     description: Issue a new visitor pass with a valid token obtained from the loginSecurity endpoint
@@ -299,7 +342,7 @@ async function run() {
  *               visitorUsername:
  *                 type: string
  *                 description: The username of the visitor for whom the pass is issued
- *               passDetails:
+ *               phoneNumber:
  *                 type: string
  *                 description: Additional details for the pass (optional)
  *             required:
@@ -320,12 +363,12 @@ app.post('/issuePass', verifyToken, async (req, res) => {
 
 /**
  * @swagger
- * /retrievePass/{passIdentifier}:
+ * /retrieveContactNumber/{passIdentifier}:
  *   get:
- *     summary: Retrieve visitor pass details
- *     description: Retrieve pass details for a visitor using the pass identifier
+ *     summary: Retrieve contact number from visitor pass
+ *     description: Retrieve the contact number of the security associated with the given visitor pass (Only accessible by authenticated admin)
  *     tags:
- *       - Visitor
+ *       - Public
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -337,17 +380,20 @@ app.post('/issuePass', verifyToken, async (req, res) => {
  *           type: string
  *     responses:
  *       '200':
- *         description: Visitor pass details retrieved successfully
+ *         description: Contact number retrieved successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
  *       '404':
  *         description: Pass not found or unauthorized to retrieve
  */
-app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
+app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) => {
     let data = req.user;
     let passIdentifier = req.params.passIdentifier;
-    res.send(await retrievePass(client, data, passIdentifier));
+    res.send(await retrieveContactNumber(client, data, passIdentifier));
 });
+
 
 }
 
@@ -432,7 +478,7 @@ async function decryptPassword(password, compare) {
 async function register(client, data, mydata) {
   const adminCollection = client.db("assigment").collection("Admin");
   const securityCollection = client.db("assigment").collection("Security");
-  const usersCollection = client.db("assigment").collection("Users");
+
 
   const tempAdmin = await adminCollection.findOne({ username: mydata.username });
   const tempSecurity = await securityCollection.findOne({ username: mydata.username });
@@ -511,14 +557,13 @@ async function issuePass(client, data, passData) {
     return `Visitor pass issued successfully with pass identifier: ${passIdentifier}`;
 }
 
-// Function to retrieve pass details
-async function retrievePass(client, data, passIdentifier) {
-    const passesCollection = client.db('assigment').collection('Passes');
-
-    // Check if the visitor has the authority to retrieve their pass details
-    if (data.role !== 'Security') {
-        return 'You do not have the authority to retrieve pass details.';
+// Function to retrieve contact number from visitor pass
+async function retrieveContactNumber(client, data, passIdentifier) {
+    if (data.role !== 'Admin') {
+        return 'You do not have the authority to retrieve contact numbers.';
     }
+
+    const passesCollection = client.db('assigment').collection('Passes');
 
     // Find the pass record using the pass identifier
     const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
@@ -527,14 +572,50 @@ async function retrievePass(client, data, passIdentifier) {
         return 'Pass not found or unauthorized to retrieve';
     }
 
+    // Retrieve the security user associated with the pass
+    const securityUser = await client.db('assigment').collection('Security').findOne({ username: passRecord.issuedBy });
+
+    if (!securityUser) {
+        return 'Security user not found';
+    }
+
     // You can customize the response format based on your needs
     return {
-        passIdentifier: passRecord.passIdentifier,
-        visitorUsername: passRecord.visitorUsername,
-        passDetails: passRecord.passDetails,
-        issuedBy: passRecord.issuedBy,
-        issueTime: passRecord.issueTime
+        securityUsername: securityUser.username,
+        securityContactNumber: securityUser.phoneNumber
     };
+}
+
+// Function to manage account roles
+async function manageAccountRoles(client, data, accountData) {
+    if (data.role !== 'Admin') {
+        return 'You do not have the authority to manage account roles.';
+    }
+
+    const { username, role } = accountData;
+
+    const adminCollection = client.db('assigment').collection('Admin');
+    const securityCollection = client.db('assigment').collection('Security');
+
+    let collectionToUpdate;
+    if (role === 'Admin') {
+        collectionToUpdate = adminCollection;
+    } else if (role === 'Security') {
+        collectionToUpdate = securityCollection;
+    } else {
+        return 'Invalid role specified';
+    }
+
+    const result = await collectionToUpdate.updateOne(
+        { username: username },
+        { $set: { role: role } }
+    );
+
+    if (result.matchedCount === 0) {
+        return 'Account not found';
+    }
+
+    return 'Account role updated successfully';
 }
 
 // Function to read data
@@ -559,7 +640,7 @@ async function read(client, data) {
     }
   
   }
-  
+
 function generatePassIdentifier() {
     // Implement your logic to generate a unique identifier
     // This can be a combination of timestamp, random numbers, or any other strategy that ensures uniqueness

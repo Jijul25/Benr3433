@@ -312,11 +312,11 @@ async function run() {
  *       '404':
  *         description: Visitor not found
  */
-    app.post('/issuePass', verifyToken, async (req, res) => {
-        let data = req.user;
-        let passData = req.body;
-        res.send(await issuePass(client, data, passData));
-    });
+app.post('/issuePass', verifyToken, async (req, res) => {
+    let data = req.user;
+    let passData = req.body;
+    res.send(await issuePass(client, data, passData));
+});
 
 /**
  * @swagger
@@ -343,12 +343,12 @@ async function run() {
  *       '404':
  *         description: Pass not found or unauthorized to retrieve
  */
-    app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
-        let data = req.user;
-        let passIdentifier = req.params.passIdentifier;
-        res.send(await retrievePass(client, data, passIdentifier));
-    });
- 
+app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
+    let data = req.user;
+    let passIdentifier = req.params.passIdentifier;
+    res.send(await retrievePass(client, data, passIdentifier));
+});
+
 }
 
 run().catch(console.error);
@@ -483,71 +483,57 @@ async function register(client, data, mydata) {
 
 // Function to issue a pass
 async function issuePass(client, data, passData) {
+    const passesCollection = client.db('assigment').collection('Passes');
     const usersCollection = client.db('assigment').collection('Users');
-    const securityCollection = client.db('assigment').collection('Security');
-  
+
     // Check if the security user has the authority to issue passes
     if (data.role !== 'Security') {
-      return 'You do not have the authority to issue passes.';
+        return 'You do not have the authority to issue passes.';
     }
-  
-    // Find the visitor for whom the pass is issued
-    const visitor = await usersCollection.findOne({ username: passData.visitorUsername, role: 'Visitor' });
-  
-    if (!visitor) {
-      return 'Visitor not found';
-    }
-  
+
     // Generate a unique pass identifier (you can use a library or a combination of data)
     const passIdentifier = generatePassIdentifier();
-  
+
     // Store the pass details in the database or any other desired storage
-    // You can create a new Passes collection for this purpose
     // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, passDetails }
     const passRecord = {
-      passIdentifier: passIdentifier,
-      visitorUsername: passData.visitorUsername,
-      passDetails: passData.passDetails || '',
-      issuedBy: data.username, // Security user who issued the pass
-      issueTime: new Date()
+        passIdentifier: passIdentifier,
+        visitorUsername: passData.visitorUsername,
+        passDetails: passData.passDetails || '',
+        issuedBy: data.username, // Security user who issued the pass
+        issueTime: new Date()
     };
-  
+
     // Insert the pass record into the Passes collection
-    await client.db('assigment').collection('Passes').insertOne(passRecord);
-  
-    // Update the visitor's information (you might want to store pass details in the visitor document)
-    await usersCollection.updateOne(
-      { username: passData.visitorUsername },
-      { $set: { passIdentifier: passIdentifier } }
-    );
-  
+    await passesCollection.insertOne(passRecord);
+
+    // Return the unique pass identifier to the client
     return `Visitor pass issued successfully with pass identifier: ${passIdentifier}`;
 }
 
 // Function to retrieve pass details
 async function retrievePass(client, data, passIdentifier) {
     const passesCollection = client.db('assigment').collection('Passes');
-    const securityCollection = client.db('assigment').collection('Security');
-  
-    // Check if the security user has the authority to retrieve pass details
-    if (data.role !== 'Security') {
-      return 'You do not have the authority to retrieve pass details.';
+
+    // Check if the visitor has the authority to retrieve their pass details
+    if (data.role !== 'Visitor') {
+        return 'You do not have the authority to retrieve pass details.';
     }
-  
+
     // Find the pass record using the pass identifier
     const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
-  
+
     if (!passRecord) {
-      return 'Pass not found or unauthorized to retrieve';
+        return 'Pass not found or unauthorized to retrieve';
     }
-  
+
     // You can customize the response format based on your needs
     return {
-      passIdentifier: passRecord.passIdentifier,
-      visitorUsername: passRecord.visitorUsername,
-      passDetails: passRecord.passDetails,
-      issuedBy: passRecord.issuedBy,
-      issueTime: passRecord.issueTime
+        passIdentifier: passRecord.passIdentifier,
+        visitorUsername: passRecord.visitorUsername,
+        passDetails: passRecord.passDetails,
+        issuedBy: passRecord.issuedBy,
+        issueTime: passRecord.issueTime
     };
 }
 

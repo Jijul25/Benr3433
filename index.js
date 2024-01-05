@@ -225,13 +225,31 @@ async function run() {
  *         description: Unauthorized - Token is missing or invalid
  *       '400':
  *         description: Username already in use, please enter another username
+ *       '403':
+ *         description: Forbidden - Only admin can register security users
  */
 
-  app.post('/registerSecurity', verifyToken, async (req, res) => {
+app.post('/registerSecurity', verifyToken, async (req, res) => {
     let data = req.user;
     let mydata = req.body;
-    res.send(await register(client, data, mydata));
-  });
+
+    // Check if the user role is Admin
+    if (data.role !== 'Admin') {
+        return res.status(403).send('Forbidden - Only admin can register security users');
+    }
+
+    // Check if the username is already in use
+    const usernameExists = await client.db("assigment").collection("Security").findOne({ username: mydata.username });
+    if (usernameExists) {
+        return res.status(400).send('Username already in use, please enter another username');
+    }
+
+    // Register the security user
+    const result = await register(client, data, mydata);
+
+    res.send(result);
+});
+
 
   
   /**

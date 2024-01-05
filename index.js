@@ -269,7 +269,7 @@ async function run() {
  * /registerVisitor:
  *   post:
  *     summary: Register a new visitor
- *     description: Register a new visitor with required details
+ *     description: Register a new visitor with required details that need token from loginSecurity to be done
  *     tags:
  *       - Visitor
  *     security:
@@ -334,7 +334,7 @@ async function run() {
  * /readAdmin:
  *   get:
  *     summary: Read admin data
- *     description: Retrieve admin data using a valid token obtained from /loginAdmin
+ *     description: Retrieve admin data using a valid token obtained from loginAdmin
  *     tags:
  *       - Admin
  *     security:
@@ -357,7 +357,7 @@ async function run() {
  * /readSecurity:
  *   get:
  *     summary: Read security user data
- *     description: Read security user data with a valid token obtained from the loginAdmin endpoint
+ *     description: Read security user data with a valid token obtained from the loginSecurity endpoint
  *     tags:
  *       - Security
  *     security:
@@ -380,7 +380,7 @@ async function run() {
  * /readVisitor:
  *   get:
  *     summary: Read visitor data
- *     description: Read visitor data with a valid token obtained from the loginAdmin endpoint
+ *     description: Read visitor data with a valid token obtained from the loginVisitor endpoint
  *     tags:
  *       - Visitor
  *     security:
@@ -403,7 +403,7 @@ async function run() {
  * /updateVisitor:
  *   patch:
  *     summary: Update visitor information
- *     description: Update visitor information with a valid token obtained from the loginAdmin endpoint
+ *     description: Update visitor information with a valid token obtained from the loginVisitor endpoint
  *     tags:
  *       - Visitor
  *     security:
@@ -464,7 +464,7 @@ async function run() {
  * /deleteVisitor:
  *   delete:
  *     summary: Delete visitor data
- *     description: Delete visitor data with a valid token obtained from the loginAdmin endpoint
+ *     description: Delete visitor data with a valid token obtained from the login endpoint
  *     tags:
  *       - Visitor
  *     security:
@@ -487,7 +487,7 @@ async function run() {
  * /checkIn:
  *   post:
  *     summary: Check in a visitor
- *     description: Check in a visitor with a valid token obtained from the loginAdmin endpoint
+ *     description: Check in a visitor with a valid token obtained from the loginVisitor endpoint
  *     tags:
  *       - Visitor
  *     security:
@@ -527,7 +527,7 @@ async function run() {
  * /checkOut:
  *   patch:
  *     summary: Check out a visitor
- *     description: Check out a visitor with a valid token obtained from the loginAdmin endpoint
+ *     description: Check out a visitor with a valid token obtained from the loginVisitor endpoint
  *     tags:
  *       - Visitor
  *     security:
@@ -564,7 +564,7 @@ run().catch(console.error);
 function generateToken(userProfile){
   return jwt.sign(
   userProfile,    //this is an obj
-  'dinpassword',           //password
+  'julpassword',           //password
   { expiresIn: '2h' });  //expires after 2 hour
 }
 
@@ -894,7 +894,7 @@ function verifyToken(req, res, next) {
 
   let token = header.split(' ')[1];
 
-  jwt.verify(token, 'dinpassword', function(err, decoded) {
+  jwt.verify(token, 'julpassword', function(err, decoded) {
     if (err) {
       console.error(err);
       return res.status(401).send('Invalid token');

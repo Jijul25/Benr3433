@@ -2,12 +2,15 @@ const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongod
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -40,6 +43,7 @@ const client = new MongoClient(uri, {
   }
 });
 
+
 async function run() {
   await client.connect();
   await client.db("admin").command({ ping: 1 });
@@ -53,6 +57,7 @@ async function run() {
   app.get('/', (req, res) => {
     res.send('Server Group 21 Information Security');
   });
+
   /**
  * @swagger
  * /registerAdmin:
@@ -94,7 +99,8 @@ async function run() {
  *         description: Admin registered successfully
  *       '400':
  *         description: Username already registered
- */  
+ */
+  
   app.post('/registerAdmin', async (req, res) => {
     let data = req.body;
     res.send(await registerAdmin(client, data));
@@ -134,6 +140,9 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
+
+  
+
   /**
  * @swagger
  * /loginSecurity:
@@ -168,39 +177,7 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
-  
-  /**
- * @swagger
- * /loginVisitor:
- *   post:
- *     summary: Login as visitor
- *     description: Authenticate and log in as visitor with username and password
- *     tags:
- *       - Visitor
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *             required:
- *               - username
- *               - password
- *     responses:
- *       '200':
- *         description: Visitor login successful
- *       '401':
- *         description: Unauthorized - Invalid credentials
- */
-  app.post('/loginVisitor', async (req, res) => {
-    let data = req.body;
-    res.send(await login(client, data));
-  });
+
 
   /**
  * @swagger
@@ -255,70 +232,8 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
-  /**
- * @swagger
- * /registerVisitor:
- *   post:
- *     summary: Register a new visitor
- *     description: Register a new visitor with required details that need token from loginSecurity to be done
- *     tags:
- *       - Security
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               username:
- *                 type: string
- *                 description: The username of the visitor
- *               password:
- *                 type: string
- *                 description: The password of the visitor
- *               name:
- *                 type: string
- *                 description: The name of the visitor
- *               icNumber:
- *                 type: string
- *                 description: The IC number of the visitor
- *               company:
- *                 type: string
- *                 description: The company of the visitor
- *               vehicleNumber:
- *                 type: string
- *                 description: The vehicle number of the visitor
- *               email:
- *                 type: string
- *                 format: email
- *                 description: The email of the visitor
- *               phoneNumber:
- *                 type: string
- *                 description: The phone number of the visitor
- *             required:
- *               - username
- *               - password
- *               - name
- *               - icNumber
- *               - company
- *               - vehicleNumber
- *               - email
- *               - phoneNumber
- *     responses:
- *       '200':
- *         description: Visitor registration successful
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '400':
- *         description: Username already in use, please enter another username
- */
-  app.post('/registerVisitor', verifyToken, async (req, res) => {
-    let data = req.user;
-    let mydata = req.body;
-    res.send(await register(client, data, mydata));
-  });
+
+  
   /**
  * @swagger
  * /readAdmin:
@@ -341,6 +256,7 @@ async function run() {
     let data = req.user;
     res.send(await read(client, data));
   });
+
   /**
  * @swagger
  * /readSecurity:
@@ -364,35 +280,13 @@ async function run() {
     res.send(await read(client, data));
   });
 
-  /**
- * @swagger
- * /readVisitor:
- *   get:
- *     summary: Read visitor data
- *     description: Read visitor data with a valid token obtained from the loginVisitor endpoint
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: Visitor data retrieved successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found
- */
-  app.get('/readVisitor', verifyToken, async (req, res) => {
-    let data = req.user;
-    res.send(await read(client, data));
-  });
 
   /**
  * @swagger
  * /VisitorPass:
  *   post:
  *     summary: Issue a visitor pass
- *     description: Authenticated security can issue a visitor pass with details provided.
+ *     description: Issue a new visitor pass with a valid token obtained from the loginSecurity endpoint
  *     tags:
  *       - Security
  *     security:
@@ -404,77 +298,36 @@ async function run() {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               visitorUsername:
  *                 type: string
- *                 description: The name of the visitor
- *               company:
+ *                 description: The username of the visitor for whom the pass is issued
+ *               phoneNumber:
  *                 type: string
- *                 description: The company of the visitor
- *               vehicleNumber:
- *                 type: string
- *                 description: The vehicle number of the visitor
- *               purpose:
- *                 type: string
- *                 description: The purpose of the visit
+ *                 description: Additional details for the pass (optional)
  *             required:
- *               - name
- *               - company
- *               - vehicleNumber
- *               - purpose
+ *               - visitorUsername
  *     responses:
  *       '200':
- *         description: Visitor pass issued successfully with pass identifier
+ *         description: Visitor pass issued successfully, returns a unique pass identifier
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
- *       '500':
- *         description: Internal Server Error - Failed to issue visitor pass
+ *       '404':
+ *         description: Visitor not found
  */
 app.post('/VisitorPass', verifyToken, async (req, res) => {
-    try {
-      const securityData = req.user;
-      const visitorData = req.body;
-  
-      // Ensure only security personnel can issue visitor passes
-      if (securityData.role !== 'Security') {
-        return res.status(401).send('Unauthorized to issue visitor passes');
-      }
-  
-      // Generate a unique pass identifier
-      const passIdentifier = generatePassIdentifier();
-  
-      // Store visitor information in the database
-      const recordsCollection = client.db('assigment').collection('Records');
-      const recordData = {
-        username: passIdentifier, // Use pass identifier as a unique username
-        name: visitorData.name,
-        company: visitorData.company,
-        vehicleNumber: visitorData.vehicleNumber,
-        purpose: visitorData.purpose,
-        checkInTime: new Date(),
-        checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
-      };
-  
-      await recordsCollection.insertOne(recordData);
-  
-      res.status(200).json({
-        message: 'Visitor pass issued successfully',
-        passIdentifier: passIdentifier,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send('Internal Server Error - Failed to issue visitor pass');
-    }
-  });
-  
-  
+    let data = req.user;
+    let passData = req.body;
+    res.send(await issuePass(client, data, passData));
+});
+
 /**
  * @swagger
- * /retrievePass/{passIdentifier}:
+ * /retrieveContactNumber/{passIdentifier}:
  *   get:
- *     summary: Retrieve visitor pass details
- *     description: Retrieve pass details for a visitor using the pass identifier
+ *     summary: Retrieve contact number from visitor pass
+ *     description: Retrieve the contact number of the security associated with the given visitor pass (Only accessible by authenticated admin)
  *     tags:
- *       - Security
+ *       - Public
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -486,25 +339,28 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
  *           type: string
  *     responses:
  *       '200':
- *         description: Visitor pass details retrieved successfully
+ *         description: Contact number retrieved successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
  *       '404':
  *         description: Pass not found or unauthorized to retrieve
  */
-    app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
-        let data = req.user;
-        let passIdentifier = req.params.passIdentifier;
-        res.send(await retrievePass(client, data, passIdentifier));
-    });
-  /**
+app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) => {
+    let data = req.user;
+    let passIdentifier = req.params.passIdentifier;
+    res.send(await retrieveContactNumber(client, data, passIdentifier));
+});
+
+/**
  * @swagger
- * /updateVisitor:
- *   patch:
- *     summary: Update visitor information
- *     description: Update visitor information with a valid token obtained from the loginVisitor endpoint
+ * /updateSecurity:
+ *   put:
+ *     summary: Update security user data
+ *     description: Update security user data with a valid token obtained from loginSecurity
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -516,144 +372,59 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
  *             properties:
  *               password:
  *                 type: string
- *                 description: The new password for the visitor
+ *                 description: The updated password of the security user
  *               name:
  *                 type: string
- *                 description: The new name for the visitor
- *               icNumber:
- *                 type: string
- *                 description: The new IC number for the visitor
- *               company:
- *                 type: string
- *                 description: The new company for the visitor
- *               vehicleNumber:
- *                 type: string
- *                 description: The new vehicle number for the visitor
+ *                 description: The updated name of the security user
  *               email:
  *                 type: string
  *                 format: email
- *                 description: The new email for the visitor
+ *                 description: The updated email of the security user
  *               phoneNumber:
  *                 type: string
- *                 description: The new phone number for the visitor
+ *                 description: The updated phone number of the security user
  *             required:
  *               - password
  *               - name
- *               - icNumber
- *               - company
- *               - vehicleNumber
  *               - email
  *               - phoneNumber
  *     responses:
  *       '200':
- *         description: Visitor information updated successfully
+ *         description: Security user data updated successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: Visitor not found
+ *         description: Security user not found
  */
-  app.patch('/updateVisitor', verifyToken, async (req, res) => {
+app.put('/updateSecurity', verifyToken, async (req, res) => {
     let data = req.user;
-    let mydata = req.body;
-    res.send(await update(client, data, mydata));
-  });
+    let updatedData = req.body;
+    res.send(await update(client, data, updatedData, 'Security'));
+});
 
-  /**
+/**
  * @swagger
- * /deleteVisitor:
+ * /deleteSecurity:
  *   delete:
- *     summary: Delete visitor data
- *     description: Delete visitor data with a valid token obtained from the login endpoint
+ *     summary: Delete security user data
+ *     description: Delete security user data with a valid token obtained from loginSecurity
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Visitor data deleted successfully
+ *         description: Security user data deleted successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '404':
- *         description: Visitor not found
+ *         description: Security user not found
  */
-  app.delete('/deleteVisitor', verifyToken, async (req, res) => {
+app.delete('/deleteSecurity', verifyToken, async (req, res) => {
     let data = req.user;
-    res.send(await deleteUser(client, data));
-  });
-  /**
- * @swagger
- * /checkIn:
- *   post:
- *     summary: Check in a visitor
- *     description: Check in a visitor with a valid token obtained from the loginVisitor endpoint
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recordID:
- *                 type: string
- *                 description: The unique record ID for the check-in
- *               purpose:
- *                 type: string
- *                 description: The purpose of the visit
- *             required:
- *               - recordID
- *               - purpose
- *     responses:
- *       '200':
- *         description: Visitor checked in successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found or recordID already in use
- */
-  app.post('/checkIn', verifyToken, async (req, res) => {
-    let data = req.user;
-    let mydata = req.body;
-    res.send(await checkIn(client, data, mydata));
-  });
-  /**
- * @swagger
- * /checkOut:
- *   post:
- *     summary: Check out a visitor
- *     description: Check out a visitor with a valid token obtained from the loginVisitor endpoint
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recordID:
- *                 type: string
- *                 description: The unique record ID for the check-out
- *             required:
- *               - recordID
- *     responses:
- *       '200':
- *         description: Visitor checked out successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Visitor not found or check-in not performed
- */
-    app.post('/checkOut', verifyToken, async (req, res) => {
-        let data = req.user;
-        res.send(await checkOut(client, data));
-    });
-  
+    res.send(await deleteUser(client, data, 'Security'));
+});
+
 }
 
 run().catch(console.error);
@@ -737,7 +508,7 @@ async function decryptPassword(password, compare) {
 async function register(client, data, mydata) {
   const adminCollection = client.db("assigment").collection("Admin");
   const securityCollection = client.db("assigment").collection("Security");
-  const usersCollection = client.db("assigment").collection("Users");
+
 
   const tempAdmin = await adminCollection.findOne({ username: mydata.username });
   const tempSecurity = await securityCollection.findOne({ username: mydata.username });
@@ -787,109 +558,87 @@ async function register(client, data, mydata) {
 }
 
 // Function to issue a pass
-async function VisitorPass(client, data, passData) {
+async function issuePass(client, data, passData) {
+    const passesCollection = client.db('assigment').collection('Passes');
     const usersCollection = client.db('assigment').collection('Users');
-    const securityCollection = client.db('assigment').collection('Security');
-  
+
     // Check if the security user has the authority to issue passes
     if (data.role !== 'Security') {
-      return 'You do not have the authority to issue passes.';
+        return 'You do not have the authority to issue passes.';
     }
-  
-    // Find the visitor for whom the pass is issued
-    const visitor = await usersCollection.findOne({ username: passData.visitorUsername, role: 'Visitor' });
-  
-    if (!visitor) {
-      return 'Visitor not found';
-    }
-  
+
     // Generate a unique pass identifier (you can use a library or a combination of data)
     const passIdentifier = generatePassIdentifier();
-  
+
     // Store the pass details in the database or any other desired storage
-    // You can create a new Passes collection for this purpose
-    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, passDetails }
+    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, phoneNumber }
     const passRecord = {
-      passIdentifier: passIdentifier,
-      visitorUsername: passData.visitorUsername,
-      passDetails: passData.passDetails || '',
-      issuedBy: data.username, // Security user who issued the pass
-      issueTime: new Date()
+        passIdentifier: passIdentifier,
+        visitorUsername: passData.visitorUsername,
+        phoneNumber: passData.phoneNumber || '',
+        issuedBy: data.username, // Security user who issued the pass
+        issueTime: new Date()
     };
-  
+
     // Insert the pass record into the Passes collection
-    await client.db('assigment').collection('Passes').insertOne(passRecord);
-  
-    // Update the visitor's information (you might want to store pass details in the visitor document)
-    await usersCollection.updateOne(
-      { username: passData.visitorUsername },
-      { $set: { passIdentifier: passIdentifier } }
-    );
-  
+    await passesCollection.insertOne(passRecord);
+
+    // Return the unique pass identifier to the client
     return `Visitor pass issued successfully with pass identifier: ${passIdentifier}`;
 }
 
-// Function to retrieve pass details
-async function retrievePass(client, data, passIdentifier) {
-    const passesCollection = client.db('assigment').collection('Passes');
-    const securityCollection = client.db('assigment').collection('Security');
-  
-    // Check if the security user has the authority to retrieve pass details
+// Function to retrieve contact number from visitor pass
+async function retrieveContactNumber(client, data, passIdentifier) {
     if (data.role !== 'Security') {
-      return 'You do not have the authority to retrieve pass details.';
+        return 'You do not have the authority to retrieve contact numbers.';
     }
-  
+
+    const passesCollection = client.db('assigment').collection('Passes');
+
     // Find the pass record using the pass identifier
     const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
-  
+
     if (!passRecord) {
-      return 'Pass not found or unauthorized to retrieve';
+        return 'Pass not found or unauthorized to retrieve';
     }
-  
+
+    // Retrieve the security user associated with the pass
+    const securityUser = await client.db('assigment').collection('Security').findOne({ username: passRecord.issuedBy });
+
+    if (!securityUser) {
+        return 'Security user not found';
+    }
+
     // You can customize the response format based on your needs
     return {
-      passIdentifier: passRecord.passIdentifier,
-      visitorUsername: passRecord.visitorUsername,
-      passDetails: passRecord.passDetails,
-      issuedBy: passRecord.issuedBy,
-      issueTime: passRecord.issueTime
+        securityUsername: securityUser.username,
+        securityContactNumber: securityUser.phoneNumber
     };
 }
 
-//Function to read data
+
+// Function to read data
 async function read(client, data) {
-  if (data.role == 'Admin') {
-    const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).next();
-    const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
-    const Visitors = await client.db('assigment').collection('Users').find({ role: 'Visitor' }).toArray();
-    const Records = await client.db('assigment').collection('Records').find().toArray();
-
-    return { Admins, Securitys, Visitors, Records };
-  }
-
-  if (data.role == 'Security') {
-    const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
-    if (!Security) {
-      return 'User not found';
+    if (data.role === 'Admin') {
+      const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).toArray();
+      const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
+      const Passes = await client.db('assigment').collection('Passes').find().toArray();
+  
+      return { Admins, Securitys, Passes };
     }
-
-    const Visitors = await client.db('assigment').collection('Users').find({ Security: data.username }).toArray();
-    const Records = await client.db('assigment').collection('Records').find().toArray();
-
-    return { Security, Visitors, Records };
-  }
-
-  if (data.role == 'Visitor') {
-    const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
-    if (!Visitor) {
-      return 'User not found';
+  
+    if (data.role === 'Security') {
+      const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
+      if (!Security) {
+        return 'User not found';
+      }
+  
+      const Passes = await client.db('assigment').collection('Passes').find().toArray();
+  
+      return { Security, Passes };
     }
-
-    const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
-
-    return { Visitor, Records };
+  
   }
-}
 
 function generatePassIdentifier() {
     // Implement your logic to generate a unique identifier
@@ -955,93 +704,6 @@ async function deleteUser(client, data) {
 }
 
 
-//Function to check in
-async function checkIn(client, data, mydata) {
-  const usersCollection = client.db('assigment').collection('Users');
-  const recordsCollection = client.db('assigment').collection('Records');
-
-  const currentUser = await usersCollection.findOne({ username: data.username });
-
-  if (!currentUser) {
-    return 'User not found';
-  }
-
-  if (currentUser.currentCheckIn) {
-    return 'Already checked in, please check out first!!!';
-  }
-
-  if (data.role !== 'Visitor') {
-    return 'Only visitors can access check-in.';
-  }
-
-  const existingRecord = await recordsCollection.findOne({ recordID: mydata.recordID });
-
-  if (existingRecord) {
-    return `The recordID '${mydata.recordID}' is already in use. Please enter another recordID.`;
-  }
-
-  const currentCheckInTime = new Date();
-
-  const recordData = {
-    username: data.username,
-    recordID: mydata.recordID,
-    purpose: mydata.purpose,
-    checkInTime: currentCheckInTime
-  };
-
-  await recordsCollection.insertOne(recordData);
-
-  await usersCollection.updateOne(
-    { username: data.username },
-    {
-      $set: { currentCheckIn: mydata.recordID },
-      $push: { records: mydata.recordID }
-    }
-  );
-
-  return `You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`;
-}
-
-// Function to check out
-async function checkOut(client, data) {
-    const usersCollection = client.db('assigment').collection('Users');
-    const recordsCollection = client.db('assigment').collection('Records');
-  
-    const currentUser = await usersCollection.findOne({ username: data.username });
-  
-    if (!currentUser) {
-      return 'User not found';
-    }
-  
-    if (!currentUser.currentCheckIn) {
-      return 'You have not checked in yet, please check in first!!!';
-    }
-  
-    const checkOutTime = new Date();
-  
-    // Update the check-out time in the Records collection
-    const updateResult = await recordsCollection.updateOne(
-      { recordID: currentUser.currentCheckIn },
-      { $set: { checkOutTime: checkOutTime } }
-    );
-  
-    if (updateResult.modifiedCount === 0) {
-      return 'Failed to update check-out time. Please try again.';
-    }
-  
-    // Unset the currentCheckIn field in the Users collection
-    const unsetResult = await usersCollection.updateOne(
-      { username: currentUser.username },
-      { $unset: { currentCheckIn: '' } }
-    );
-  
-    if (unsetResult.modifiedCount === 0) {
-      return 'Failed to check out. Please try again.';
-    }
-  
-    return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
-}
-
 //Function to output
 function output(data) {
   if(data == 'Admin') {
@@ -1073,3 +735,4 @@ function verifyToken(req, res, next) {
     next();
   });
 }
+

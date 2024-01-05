@@ -5,7 +5,6 @@ const bcrypt = require('bcrypt');
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
-
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -42,24 +41,18 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-    try {
-      await client.connect();
-      await client.db("admin").command({ ping: 1 });
-      console.log("You successfully connected to MongoDB!");
-  
-      app.use(express.json());
-      app.listen(port, () => {
-        console.log(`Server listening at http://localSecurity:${port}`);
-      });
-  
-      app.get('/', (req, res) => {
-        res.send('Server Group 21 Information Security');
-      });
-    } catch (error) {
-      console.error("MongoDB connection error:", error);
-    }
-  }
+  await client.connect();
+  await client.db("admin").command({ ping: 1 });
+  console.log("You successfully connected to MongoDB!");
 
+  app.use(express.json());
+  app.listen(port, () => {
+    console.log(`Server listening at http://localSecurity:${port}`);
+  });
+
+  app.get('/', (req, res) => {
+    res.send('Server Group 21 Information Security');
+  });
   /**
  * @swagger
  * /registerAdmin:
@@ -175,6 +168,7 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
+  
 
   /**
  * @swagger
@@ -229,7 +223,7 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
-
+  
   /**
  * @swagger
  * /readAdmin:
@@ -298,8 +292,7 @@ async function run() {
     res.send(await read(client, data));
   });
 
-  // Function to issue a visitor pass
-/**
+  /**
  * @swagger
  * /issueVisitorPass:
  *   post:
@@ -343,40 +336,40 @@ async function run() {
  */
 app.post('/issueVisitorPass', verifyToken, async (req, res) => {
     try {
-        const securityData = req.user;
-        const visitorData = req.body;
-
-        // Ensure only security personnel can issue visitor passes
-        if (securityData.role !== 'Security') {
-            return res.status(401).send('Unauthorized to issue visitor passes');
-        }
-
-        // Generate a unique pass identifier
-        const passIdentifier = generatePassIdentifier();
-
-        // Store visitor information in the database
-        const recordsCollection = client.db('assigment').collection('Records');
-        const recordData = {
-            username: passIdentifier, // Use pass identifier as a unique username
-            name: visitorData.name,
-            company: visitorData.company,
-            vehicleNumber: visitorData.vehicleNumber,
-            purpose: visitorData.purpose,
-            checkInTime: new Date(),
-            checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
-        };
-
-        await recordsCollection.insertOne(recordData);
-
-        res.status(200).json({
-            message: 'Visitor pass issued successfully',
-            passIdentifier: passIdentifier,
-        });
+      const securityData = req.user;
+      const visitorData = req.body;
+  
+      // Ensure only security personnel can issue visitor passes
+      if (securityData.role !== 'Security') {
+        return res.status(401).send('Unauthorized to issue visitor passes');
+      }
+  
+      // Generate a unique pass identifier
+      const passIdentifier = generatePassIdentifier();
+  
+      // Store visitor information in the database
+      const recordsCollection = client.db('assigment').collection('Records');
+      const recordData = {
+        username: passIdentifier, // Use pass identifier as a unique username
+        name: visitorData.name,
+        company: visitorData.company,
+        vehicleNumber: visitorData.vehicleNumber,
+        purpose: visitorData.purpose,
+        checkInTime: new Date(),
+        checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
+      };
+  
+      await recordsCollection.insertOne(recordData);
+  
+      res.status(200).json({
+        message: 'Visitor pass issued successfully',
+        passIdentifier: passIdentifier,
+      });
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error - Failed to issue visitor pass');
+      console.error(error);
+      res.status(500).send('Internal Server Error - Failed to issue visitor pass');
     }
-});
+  });
   
   
 /**
@@ -409,167 +402,7 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
         let passIdentifier = req.params.passIdentifier;
         res.send(await retrievePass(client, data, passIdentifier));
     });
-
-/**
- * @swagger
- * /checkIn:
- *   post:
- *     summary: Check-in for visitors
- *     description: Allows visitors to check-in, recording their visit details.
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recordID:
- *                 type: string
- *                 description: The unique identifier for the visit record.
- *               purpose:
- *                 type: string
- *                 description: The purpose of the visit.
- *             required:
- *               - recordID
- *               - purpose
- *     responses:
- *       '200':
- *         description: Visitor checked in successfully
- *       '400':
- *         description: Bad Request - Visitor is already checked in or recordID is already in use
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Not Found - Visitor not found
- *       '500':
- *         description: Internal Server Error - Failed to check in
- */
-  app.post('/checkIn', verifyToken, async (req, res) => {
-    try {
-        const data = req.user;
-        const mydata = req.body;
-
-        // Ensure only visitors can access check-in
-        if (data.role !== 'Visitor') {
-            return res.status(401).send('Only visitors can access check-in.');
-        }
-
-        const currentUser = await client.db('assigment').collection('Users').findOne({ username: data.username });
-
-        if (!currentUser) {
-            return res.status(404).send('User not found');
-        }
-
-        if (currentUser.currentCheckIn) {
-            return res.status(400).send('Already checked in, please check out first!!!');
-        }
-
-        const existingRecord = await client.db('assigment').collection('Records').findOne({ recordID: mydata.recordID });
-
-        if (existingRecord) {
-            return res.status(400).send(`The recordID '${mydata.recordID}' is already in use. Please enter another recordID.`);
-        }
-
-        const currentCheckInTime = new Date();
-
-        const recordData = {
-            username: data.username,
-            recordID: mydata.recordID,
-            purpose: mydata.purpose,
-            checkInTime: currentCheckInTime
-        };
-
-        await client.db('assigment').collection('Records').insertOne(recordData);
-
-        await client.db('assigment').collection('Users').updateOne(
-            { username: data.username },
-            {
-                $set: { currentCheckIn: mydata.recordID },
-                $push: { records: mydata.recordID }
-            }
-        );
-
-        res.status(200).send(`You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error - Failed to check in');
-    }
-});
-
-/**
- * @swagger
- * /checkOut:
- *   post:
- *     summary: Check-out for visitors
- *     description: Allows visitors to check-out, updating their visit record with check-out time.
- *     tags:
- *       - Visitor
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: Visitor checked out successfully
- *       '400':
- *         description: Bad Request - Visitor has not checked in yet
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '404':
- *         description: Not Found - Visitor not found
- *       '500':
- *         description: Internal Server Error - Failed to check out
- */
-  // Function to check out
-app.post('/checkOut', verifyToken, async (req, res) => {
-    try {
-        const data = req.user;
-
-        // Ensure only visitors can access check-out
-        if (data.role !== 'Visitor') {
-            return res.status(401).send('Only visitors can access check-out.');
-        }
-
-        const currentUser = await client.db('assigment').collection('Users').findOne({ username: data.username });
-
-        if (!currentUser) {
-            return res.status(404).send('User not found');
-        }
-
-        if (!currentUser.currentCheckIn) {
-            return res.status(400).send('You have not checked in yet, please check in first!!!');
-        }
-
-        const checkOutTime = new Date();
-
-        // Update the check-out time in the Records collection
-        const updateResult = await client.db('assigment').collection('Records').updateOne(
-            { recordID: currentUser.currentCheckIn },
-            { $set: { checkOutTime: checkOutTime } }
-        );
-
-        if (updateResult.modifiedCount === 0) {
-            return res.status(500).send('Failed to update check-out time. Please try again.');
-        }
-
-        // Unset the currentCheckIn field in the Users collection
-        const unsetResult = await client.db('assigment').collection('Users').updateOne(
-            { username: currentUser.username },
-            { $unset: { currentCheckIn: '' } }
-        );
-
-        if (unsetResult.modifiedCount === 0) {
-            return res.status(500).send('Failed to check out. Please try again.');
-        }
-
-        res.status(200).send(`You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error - Failed to check out');
-    }
-});
+ 
 
 run().catch(console.error);
 
@@ -794,16 +627,6 @@ async function read(client, data) {
     return { Security, Visitors, Records };
   }
 
-  if (data.role == 'Visitor') {
-    const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
-    if (!Visitor) {
-      return 'User not found';
-    }
-
-    const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
-
-    return { Visitor, Records };
-  }
 }
 
 function generatePassIdentifier() {
@@ -819,7 +642,6 @@ function generatePassIdentifier() {
     return passIdentifier;
 }
   
-
 
 //Function to update data
 async function update(client, data, mydata) {
@@ -876,26 +698,28 @@ function output(data) {
     return "You are logged in as Admin\n1)register Security\n2)read all data"
   } else if (data == 'Security') {
     return "You are logged in as Security\n1)register Visitor\n2)read security and visitor data"
-  } 
+  } else if (data == 'Visitor') {
+    return "You are logged in as Visitor\n1)check in\n2)check out\n3)read visitor data\n4)update profile\n5)delete account"
+  }
 }
 
-// To verify JWT Token
+//to verify JWT Token
 function verifyToken(req, res, next) {
-    let header = req.headers.authorization;
+  let header = req.headers.authorization;
 
-    if (!header) {
-        return res.status(401).send('Unauthorized');
+  if (!header) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  let token = header.split(' ')[1];
+
+  jwt.verify(token, 'julpassword', function(err, decoded) {
+    if (err) {
+      console.error(err);
+      return res.status(401).send('Invalid token');
     }
 
-    let token = header.split(' ')[1];
-
-    jwt.verify(token, 'julpassword', function (err, decoded) {
-        if (err) {
-            console.error(err);
-            return res.status(401).send('Invalid token');
-        }
-
-        req.user = decoded;
-        next();
-    });
-}
+    req.user = decoded;
+    next();
+  });
+}}

@@ -537,41 +537,29 @@ async function retrievePass(client, data, passIdentifier) {
     };
 }
 
-//Function to read data
+// Function to read data
 async function read(client, data) {
-  if (data.role == 'Admin') {
-    const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).next();
-    const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
-    const Visitors = await client.db('assigment').collection('Users').find({ role: 'Visitor' }).toArray();
-    const Records = await client.db('assigment').collection('Records').find().toArray();
-
-    return { Admins, Securitys, Visitors, Records };
-  }
-
-  if (data.role == 'Security') {
-    const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
-    if (!Security) {
-      return 'User not found';
+    if (data.role === 'Admin') {
+      const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).toArray();
+      const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
+      const Passes = await client.db('assigment').collection('Passes').find().toArray();
+  
+      return { Admins, Securitys, Passes };
     }
-
-    const Visitors = await client.db('assigment').collection('Users').find({ Security: data.username }).toArray();
-    const Records = await client.db('assigment').collection('Records').find().toArray();
-
-    return { Security, Visitors, Records };
-  }
-
-  if (data.role == 'Visitor') {
-    const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
-    if (!Visitor) {
-      return 'User not found';
+  
+    if (data.role === 'Security') {
+      const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
+      if (!Security) {
+        return 'User not found';
+      }
+  
+      const Passes = await client.db('assigment').collection('Passes').find().toArray();
+  
+      return { Security, Passes };
     }
-
-    const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
-
-    return { Visitor, Records };
+  
   }
-}
-
+  
 function generatePassIdentifier() {
     // Implement your logic to generate a unique identifier
     // This can be a combination of timestamp, random numbers, or any other strategy that ensures uniqueness

@@ -589,7 +589,7 @@ async function issuePass(client, data, passData) {
 
 // Function to retrieve contact number from visitor pass
 async function retrieveContactNumber(client, data, passIdentifier) {
-    if (data.role !== 'Admin') {
+    if (data.role !== 'Security') {
         return 'You do not have the authority to retrieve contact numbers.';
     }
 

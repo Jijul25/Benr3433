@@ -787,7 +787,7 @@ async function register(client, data, mydata) {
 }
 
 // Function to issue a pass
-async function issuePass(client, data, passData) {
+async function VisitorPass(client, data, passData) {
     const usersCollection = client.db('assigment').collection('Users');
     const securityCollection = client.db('assigment').collection('Security');
   

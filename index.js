@@ -169,6 +169,38 @@ async function run() {
     res.send(await login(client, data));
   });
   
+  /**
+ * @swagger
+ * /loginVisitor:
+ *   post:
+ *     summary: Login as visitor
+ *     description: Authenticate and log in as visitor with username and password
+ *     tags:
+ *       - Visitor
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *             required:
+ *               - username
+ *               - password
+ *     responses:
+ *       '200':
+ *         description: Visitor login successful
+ *       '401':
+ *         description: Unauthorized - Invalid credentials
+ */
+  app.post('/loginVisitor', async (req, res) => {
+    let data = req.body;
+    res.send(await login(client, data));
+  });
 
   /**
  * @swagger
@@ -223,7 +255,70 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
-  
+  /**
+ * @swagger
+ * /registerVisitor:
+ *   post:
+ *     summary: Register a new visitor
+ *     description: Register a new visitor with required details that need token from loginSecurity to be done
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the visitor
+ *               password:
+ *                 type: string
+ *                 description: The password of the visitor
+ *               name:
+ *                 type: string
+ *                 description: The name of the visitor
+ *               icNumber:
+ *                 type: string
+ *                 description: The IC number of the visitor
+ *               company:
+ *                 type: string
+ *                 description: The company of the visitor
+ *               vehicleNumber:
+ *                 type: string
+ *                 description: The vehicle number of the visitor
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email of the visitor
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The phone number of the visitor
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - icNumber
+ *               - company
+ *               - vehicleNumber
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Visitor registration successful
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '400':
+ *         description: Username already in use, please enter another username
+ */
+  app.post('/registerVisitor', verifyToken, async (req, res) => {
+    let data = req.user;
+    let mydata = req.body;
+    res.send(await register(client, data, mydata));
+  });
   /**
  * @swagger
  * /readAdmin:
@@ -402,7 +497,164 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
         let passIdentifier = req.params.passIdentifier;
         res.send(await retrievePass(client, data, passIdentifier));
     });
- 
+  /**
+ * @swagger
+ * /updateVisitor:
+ *   patch:
+ *     summary: Update visitor information
+ *     description: Update visitor information with a valid token obtained from the loginVisitor endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: The new password for the visitor
+ *               name:
+ *                 type: string
+ *                 description: The new name for the visitor
+ *               icNumber:
+ *                 type: string
+ *                 description: The new IC number for the visitor
+ *               company:
+ *                 type: string
+ *                 description: The new company for the visitor
+ *               vehicleNumber:
+ *                 type: string
+ *                 description: The new vehicle number for the visitor
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The new email for the visitor
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The new phone number for the visitor
+ *             required:
+ *               - password
+ *               - name
+ *               - icNumber
+ *               - company
+ *               - vehicleNumber
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Visitor information updated successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
+ */
+  app.patch('/updateVisitor', verifyToken, async (req, res) => {
+    let data = req.user;
+    let mydata = req.body;
+    res.send(await update(client, data, mydata));
+  });
+
+  /**
+ * @swagger
+ * /deleteVisitor:
+ *   delete:
+ *     summary: Delete visitor data
+ *     description: Delete visitor data with a valid token obtained from the login endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Visitor data deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found
+ */
+  app.delete('/deleteVisitor', verifyToken, async (req, res) => {
+    let data = req.user;
+    res.send(await deleteUser(client, data));
+  });
+  /**
+ * @swagger
+ * /checkIn:
+ *   post:
+ *     summary: Check in a visitor
+ *     description: Check in a visitor with a valid token obtained from the loginVisitor endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordID:
+ *                 type: string
+ *                 description: The unique record ID for the check-in
+ *               purpose:
+ *                 type: string
+ *                 description: The purpose of the visit
+ *             required:
+ *               - recordID
+ *               - purpose
+ *     responses:
+ *       '200':
+ *         description: Visitor checked in successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found or recordID already in use
+ */
+  app.post('/checkIn', verifyToken, async (req, res) => {
+    let data = req.user;
+    let mydata = req.body;
+    res.send(await checkIn(client, data, mydata));
+  });
+  /**
+ * @swagger
+ * /checkOut:
+ *   post:
+ *     summary: Check out a visitor
+ *     description: Check out a visitor with a valid token obtained from the loginVisitor endpoint
+ *     tags:
+ *       - Visitor
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               recordID:
+ *                 type: string
+ *                 description: The unique record ID for the check-out
+ *             required:
+ *               - recordID
+ *     responses:
+ *       '200':
+ *         description: Visitor checked out successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Visitor not found or check-in not performed
+ */
+    app.post('/checkOut', verifyToken, async (req, res) => {
+        let data = req.user;
+        res.send(await checkOut(client, data));
+    });
+  
+}
 
 run().catch(console.error);
 
@@ -465,17 +717,21 @@ async function login(client, data) {
   }
 }
 
+
+
 //Function to encrypt password
 async function encryptPassword(password) {
   const hash = await bcrypt.hash(password, saltRounds); 
   return hash 
 }
 
+
 //Function to decrypt password
 async function decryptPassword(password, compare) {
   const match = await bcrypt.compare(password, compare)
   return match
 }
+
 
 //Function to register security and visitor
 async function register(client, data, mydata) {
@@ -623,6 +879,16 @@ async function read(client, data) {
     return { Security, Visitors, Records };
   }
 
+  if (data.role == 'Visitor') {
+    const Visitor = await client.db('assigment').collection('Users').findOne({ username: data.username });
+    if (!Visitor) {
+      return 'User not found';
+    }
+
+    const Records = await client.db('assigment').collection('Records').find({ recordID: { $in: Visitor.records } }).toArray();
+
+    return { Visitor, Records };
+  }
 }
 
 function generatePassIdentifier() {
@@ -638,6 +904,7 @@ function generatePassIdentifier() {
     return passIdentifier;
 }
   
+
 
 //Function to update data
 async function update(client, data, mydata) {
@@ -688,6 +955,93 @@ async function deleteUser(client, data) {
 }
 
 
+//Function to check in
+async function checkIn(client, data, mydata) {
+  const usersCollection = client.db('assigment').collection('Users');
+  const recordsCollection = client.db('assigment').collection('Records');
+
+  const currentUser = await usersCollection.findOne({ username: data.username });
+
+  if (!currentUser) {
+    return 'User not found';
+  }
+
+  if (currentUser.currentCheckIn) {
+    return 'Already checked in, please check out first!!!';
+  }
+
+  if (data.role !== 'Visitor') {
+    return 'Only visitors can access check-in.';
+  }
+
+  const existingRecord = await recordsCollection.findOne({ recordID: mydata.recordID });
+
+  if (existingRecord) {
+    return `The recordID '${mydata.recordID}' is already in use. Please enter another recordID.`;
+  }
+
+  const currentCheckInTime = new Date();
+
+  const recordData = {
+    username: data.username,
+    recordID: mydata.recordID,
+    purpose: mydata.purpose,
+    checkInTime: currentCheckInTime
+  };
+
+  await recordsCollection.insertOne(recordData);
+
+  await usersCollection.updateOne(
+    { username: data.username },
+    {
+      $set: { currentCheckIn: mydata.recordID },
+      $push: { records: mydata.recordID }
+    }
+  );
+
+  return `You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`;
+}
+
+// Function to check out
+async function checkOut(client, data) {
+    const usersCollection = client.db('assigment').collection('Users');
+    const recordsCollection = client.db('assigment').collection('Records');
+  
+    const currentUser = await usersCollection.findOne({ username: data.username });
+  
+    if (!currentUser) {
+      return 'User not found';
+    }
+  
+    if (!currentUser.currentCheckIn) {
+      return 'You have not checked in yet, please check in first!!!';
+    }
+  
+    const checkOutTime = new Date();
+  
+    // Update the check-out time in the Records collection
+    const updateResult = await recordsCollection.updateOne(
+      { recordID: currentUser.currentCheckIn },
+      { $set: { checkOutTime: checkOutTime } }
+    );
+  
+    if (updateResult.modifiedCount === 0) {
+      return 'Failed to update check-out time. Please try again.';
+    }
+  
+    // Unset the currentCheckIn field in the Users collection
+    const unsetResult = await usersCollection.updateOne(
+      { username: currentUser.username },
+      { $unset: { currentCheckIn: '' } }
+    );
+  
+    if (unsetResult.modifiedCount === 0) {
+      return 'Failed to check out. Please try again.';
+    }
+  
+    return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
+}
+
 //Function to output
 function output(data) {
   if(data == 'Admin') {
@@ -701,22 +1055,21 @@ function output(data) {
 
 //to verify JWT Token
 function verifyToken(req, res, next) {
-    let header = req.headers.authorization;
-  
-    if (!header || !header.startsWith('Bearer ')) {
-      return res.status(401).send('Unauthorized');
-    }
-  
-    let token = header.split(' ')[1];
-  
-    jwt.verify(token, 'julpassword', function (err, decoded) {
-      if (err) {
-        console.error(err);
-        return res.status(401).send('Invalid token');
-      }
-  
-      req.user = decoded;
-      next();
-    });
+  let header = req.headers.authorization;
+
+  if (!header) {
+    return res.status(401).send('Unauthorized');
   }
+
+  let token = header.split(' ')[1];
+
+  jwt.verify(token, 'julpassword', function(err, decoded) {
+    if (err) {
+      console.error(err);
+      return res.status(401).send('Invalid token');
+    }
+
+    req.user = decoded;
+    next();
+  });
 }

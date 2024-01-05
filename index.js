@@ -2,12 +2,15 @@ const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongod
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -40,6 +43,7 @@ const client = new MongoClient(uri, {
   }
 });
 
+
 async function run() {
   await client.connect();
   await client.db("admin").command({ ping: 1 });
@@ -53,6 +57,7 @@ async function run() {
   app.get('/', (req, res) => {
     res.send('Server Group 21 Information Security');
   });
+
   /**
  * @swagger
  * /registerAdmin:
@@ -94,7 +99,8 @@ async function run() {
  *         description: Admin registered successfully
  *       '400':
  *         description: Username already registered
- */  
+ */
+  
   app.post('/registerAdmin', async (req, res) => {
     let data = req.body;
     res.send(await registerAdmin(client, data));
@@ -134,6 +140,7 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
+
   /**
  * @swagger
  * /loginSecurity:
@@ -168,7 +175,7 @@ async function run() {
     let data = req.body;
     res.send(await login(client, data));
   });
-  
+
   /**
  * @swagger
  * /loginVisitor:
@@ -197,6 +204,7 @@ async function run() {
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
+
   app.post('/loginVisitor', async (req, res) => {
     let data = req.body;
     res.send(await login(client, data));
@@ -255,6 +263,7 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
+
   /**
  * @swagger
  * /registerVisitor:
@@ -319,6 +328,7 @@ async function run() {
     let mydata = req.body;
     res.send(await register(client, data, mydata));
   });
+
   /**
  * @swagger
  * /readAdmin:
@@ -341,6 +351,7 @@ async function run() {
     let data = req.user;
     res.send(await read(client, data));
   });
+
   /**
  * @swagger
  * /readSecurity:
@@ -389,12 +400,12 @@ async function run() {
 
   /**
  * @swagger
- * /issueVisitorPass:
+ * /issuePass:
  *   post:
  *     summary: Issue a visitor pass
- *     description: Authenticated security can issue a visitor pass with details provided.
+ *     description: Issue a new visitor pass with a valid token obtained from the loginSecurity endpoint
  *     tags:
- *       - Security
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -404,69 +415,28 @@ async function run() {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               visitorUsername:
  *                 type: string
- *                 description: The name of the visitor
- *               company:
+ *                 description: The username of the visitor for whom the pass is issued
+ *               passDetails:
  *                 type: string
- *                 description: The company of the visitor
- *               vehicleNumber:
- *                 type: string
- *                 description: The vehicle number of the visitor
- *               purpose:
- *                 type: string
- *                 description: The purpose of the visit
+ *                 description: Additional details for the pass (optional)
  *             required:
- *               - name
- *               - company
- *               - vehicleNumber
- *               - purpose
+ *               - visitorUsername
  *     responses:
  *       '200':
- *         description: Visitor pass issued successfully with pass identifier
+ *         description: Visitor pass issued successfully, returns a unique pass identifier
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
- *       '500':
- *         description: Internal Server Error - Failed to issue visitor pass
+ *       '404':
+ *         description: Visitor not found
  */
-app.post('/issueVisitorPass', verifyToken, async (req, res) => {
-    try {
-      const securityData = req.user;
-      const visitorData = req.body;
-  
-      // Ensure only security personnel can issue visitor passes
-      if (securityData.role !== 'Security') {
-        return res.status(401).send('Unauthorized to issue visitor passes');
-      }
-  
-      // Generate a unique pass identifier
-      const passIdentifier = generatePassIdentifier();
-  
-      // Store visitor information in the database
-      const recordsCollection = client.db('assigment').collection('Records');
-      const recordData = {
-        username: passIdentifier, // Use pass identifier as a unique username
-        name: visitorData.name,
-        company: visitorData.company,
-        vehicleNumber: visitorData.vehicleNumber,
-        purpose: visitorData.purpose,
-        checkInTime: new Date(),
-        checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
-      };
-  
-      await recordsCollection.insertOne(recordData);
-  
-      res.status(200).json({
-        message: 'Visitor pass issued successfully',
-        passIdentifier: passIdentifier,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send('Internal Server Error - Failed to issue visitor pass');
-    }
-  });
-  
-  
+    app.post('/issuePass', verifyToken, async (req, res) => {
+        let data = req.user;
+        let passData = req.body;
+        res.send(await issuePass(client, data, passData));
+    });
+
 /**
  * @swagger
  * /retrievePass/{passIdentifier}:
@@ -497,6 +467,7 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
         let passIdentifier = req.params.passIdentifier;
         res.send(await retrievePass(client, data, passIdentifier));
     });
+
   /**
  * @swagger
  * /updateVisitor:
@@ -580,6 +551,7 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
     let data = req.user;
     res.send(await deleteUser(client, data));
   });
+
   /**
  * @swagger
  * /checkIn:
@@ -619,6 +591,7 @@ app.post('/issueVisitorPass', verifyToken, async (req, res) => {
     let mydata = req.body;
     res.send(await checkIn(client, data, mydata));
   });
+
   /**
  * @swagger
  * /checkOut:
@@ -955,6 +928,10 @@ async function deleteUser(client, data) {
 }
 
 
+
+
+
+
 //Function to check in
 async function checkIn(client, data, mydata) {
   const usersCollection = client.db('assigment').collection('Users');
@@ -1002,6 +979,8 @@ async function checkIn(client, data, mydata) {
   return `You have checked in at '${currentCheckInTime}' with recordID '${mydata.recordID}'`;
 }
 
+
+
 // Function to check out
 async function checkOut(client, data) {
     const usersCollection = client.db('assigment').collection('Users');
@@ -1042,6 +1021,10 @@ async function checkOut(client, data) {
     return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
 }
 
+  
+
+
+
 //Function to output
 function output(data) {
   if(data == 'Admin') {
@@ -1052,6 +1035,8 @@ function output(data) {
     return "You are logged in as Visitor\n1)check in\n2)check out\n3)read visitor data\n4)update profile\n5)delete account"
   }
 }
+
+
 
 //to verify JWT Token
 function verifyToken(req, res, next) {
@@ -1073,3 +1058,4 @@ function verifyToken(req, res, next) {
     next();
   });
 }
+

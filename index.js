@@ -293,7 +293,8 @@ async function run() {
     res.send(await read(client, data));
   });
 
-  /**
+  // Function to issue a visitor pass
+/**
  * @swagger
  * /issueVisitorPass:
  *   post:
@@ -337,40 +338,40 @@ async function run() {
  */
 app.post('/issueVisitorPass', verifyToken, async (req, res) => {
     try {
-      const securityData = req.user;
-      const visitorData = req.body;
-  
-      // Ensure only security personnel can issue visitor passes
-      if (securityData.role !== 'Security') {
-        return res.status(401).send('Unauthorized to issue visitor passes');
-      }
-  
-      // Generate a unique pass identifier
-      const passIdentifier = generatePassIdentifier();
-  
-      // Store visitor information in the database
-      const recordsCollection = client.db('assigment').collection('Records');
-      const recordData = {
-        username: passIdentifier, // Use pass identifier as a unique username
-        name: visitorData.name,
-        company: visitorData.company,
-        vehicleNumber: visitorData.vehicleNumber,
-        purpose: visitorData.purpose,
-        checkInTime: new Date(),
-        checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
-      };
-  
-      await recordsCollection.insertOne(recordData);
-  
-      res.status(200).json({
-        message: 'Visitor pass issued successfully',
-        passIdentifier: passIdentifier,
-      });
+        const securityData = req.user;
+        const visitorData = req.body;
+
+        // Ensure only security personnel can issue visitor passes
+        if (securityData.role !== 'Security') {
+            return res.status(401).send('Unauthorized to issue visitor passes');
+        }
+
+        // Generate a unique pass identifier
+        const passIdentifier = generatePassIdentifier();
+
+        // Store visitor information in the database
+        const recordsCollection = client.db('assigment').collection('Records');
+        const recordData = {
+            username: passIdentifier, // Use pass identifier as a unique username
+            name: visitorData.name,
+            company: visitorData.company,
+            vehicleNumber: visitorData.vehicleNumber,
+            purpose: visitorData.purpose,
+            checkInTime: new Date(),
+            checkOutTime: null, // Initialize checkOutTime as null, indicating the visitor hasn't checked out yet
+        };
+
+        await recordsCollection.insertOne(recordData);
+
+        res.status(200).json({
+            message: 'Visitor pass issued successfully',
+            passIdentifier: passIdentifier,
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).send('Internal Server Error - Failed to issue visitor pass');
+        console.error(error);
+        res.status(500).send('Internal Server Error - Failed to issue visitor pass');
     }
-  });
+});
   
   
 /**
@@ -874,23 +875,23 @@ function output(data) {
   } 
 }
 
-//to verify JWT Token
+// To verify JWT Token
 function verifyToken(req, res, next) {
-  let header = req.headers.authorization;
+    let header = req.headers.authorization;
 
-  if (!header) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  let token = header.split(' ')[1];
-
-  jwt.verify(token, 'julpassword', function(err, decoded) {
-    if (err) {
-      console.error(err);
-      return res.status(401).send('Invalid token');
+    if (!header) {
+        return res.status(401).send('Unauthorized');
     }
 
-    req.user = decoded;
-    next();
-  });
+    let token = header.split(' ')[1];
+
+    jwt.verify(token, 'julpassword', function (err, decoded) {
+        if (err) {
+            console.error(err);
+            return res.status(401).send('Invalid token');
+        }
+
+        req.user = decoded;
+        next();
+    });
 }

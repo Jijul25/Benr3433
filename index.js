@@ -830,44 +830,46 @@ async function checkIn(client, data, mydata) {
 
 
 
-//Function to check out
+// Function to check out
 async function checkOut(client, data) {
-  const usersCollection = client.db('assigment').collection('Users');
-  const recordsCollection = client.db('assigment').collection('Records');
-
-  const currentUser = await usersCollection.findOne({ username: data.username });
-
-  if (!currentUser) {
-    return 'User not found';
-  }
-
-  if (!currentUser.currentCheckIn) {
-    return 'You have not checked in yet, please check in first!!!';
-  }
-
-  const checkOutTime = new Date();
-
-  const updateResult = await recordsCollection.updateOne(
-    { recordID: currentUser.currentCheckIn },
-    { $set: { checkOutTime: checkOutTime } }
-  );
-
-  if (updateResult.modifiedCount === 0) {
-    return 'Failed to update check-out time. Please try again.';
-  }
-
-  const unsetResult = await usersCollection.updateOne(
-    { username: currentUser.username },
-    { $unset: { currentCheckIn: 1 } }
-  );
-
-  if (unsetResult.modifiedCount === 0) {
-    return 'Failed to check out. Please try again.';
-  }
-
-  return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
+    const usersCollection = client.db('assigment').collection('Users');
+    const recordsCollection = client.db('assigment').collection('Records');
+  
+    const currentUser = await usersCollection.findOne({ username: data.username });
+  
+    if (!currentUser) {
+      return 'User not found';
+    }
+  
+    if (!currentUser.currentCheckIn) {
+      return 'You have not checked in yet, please check in first!!!';
+    }
+  
+    const checkOutTime = new Date();
+  
+    // Update the check-out time in the Records collection
+    const updateResult = await recordsCollection.updateOne(
+      { recordID: currentUser.currentCheckIn },
+      { $set: { checkOutTime: checkOutTime } }
+    );
+  
+    if (updateResult.modifiedCount === 0) {
+      return 'Failed to update check-out time. Please try again.';
+    }
+  
+    // Unset the currentCheckIn field in the Users collection
+    const unsetResult = await usersCollection.updateOne(
+      { username: currentUser.username },
+      { $unset: { currentCheckIn: '' } }
+    );
+  
+    if (unsetResult.modifiedCount === 0) {
+      return 'Failed to check out. Please try again.';
+    }
+  
+    return `You have checked out at '${checkOutTime}' with recordID '${currentUser.currentCheckIn}'`;
 }
-
+  
 
 
 

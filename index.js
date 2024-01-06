@@ -318,6 +318,36 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
     let passData = req.body;
     res.send(await VisitorPass(client, data, passData));
 });
+/**
+ * @swagger
+ * /retrievePass/{passIdentifier}:
+ *   get:
+ *     summary: Retrieve visitor pass details
+ *     description: Retrieve pass details for a visitor using the pass identifier
+ *     tags:
+ *       - Security
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: passIdentifier
+ *         required: true
+ *         description: The unique pass identifier
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Visitor pass details retrieved successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '404':
+ *         description: Pass not found or unauthorized to retrieve
+ */
+app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
+    let data = req.user;
+    let passIdentifier = req.params.passIdentifier;
+    res.send(await retrievePass(client, data, passIdentifier));
+});
 
 /**
  * @swagger
@@ -432,6 +462,8 @@ async function decryptPassword(password, compare) {
 }
 
 
+
+
 //Function to register security and visitor
 async function register(client, data, mydata) {
   const adminCollection = client.db("assigment").collection("Admin");
@@ -487,7 +519,7 @@ async function register(client, data, mydata) {
 // Function to issue a pass
 async function VisitorPass(client, data, passData) {
     const passesCollection = client.db('assigment').collection('Passes');
-    const usersCollection = client.db('assigment').collection('Users');
+    
 
     // Check if the security user has the authority to issue passes
     if (data.role !== 'Security') {
@@ -498,11 +530,11 @@ async function VisitorPass(client, data, passData) {
     const passIdentifier = generatePassIdentifier();
 
     // Store the pass details in the database or any other desired storage
-    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, passDetails }
+    // For simplicity, let's assume a Passes collection with a structure like { passIdentifier, visitorUsername, phoneNumber }
     const passRecord = {
         passIdentifier: passIdentifier,
         visitorUsername: passData.visitorUsername,
-        passDetails: passData.passDetails || '',
+        phoneNumber: passData.phoneNumber || '',
         issuedBy: data.username, // Security user who issued the pass
         issueTime: new Date()
     };
@@ -540,6 +572,33 @@ async function retrieveContactNumber(client, data, passIdentifier) {
     return {
         securityUsername: securityUser.username,
         securityContactNumber: securityUser.phoneNumber
+    };
+}
+
+// Function to retrieve pass details
+async function retrievePass(client, data, passIdentifier) {
+    const passesCollection = client.db('assigment').collection('Passes');
+    const securityCollection = client.db('assigment').collection('Security');
+  
+    // Check if the security user has the authority to retrieve pass details
+    if (data.role !== 'Security') {
+      return 'You do not have the authority to retrieve pass details.';
+    }
+  
+    // Find the pass record using the pass identifier
+    const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
+  
+    if (!passRecord) {
+      return 'Pass not found or unauthorized to retrieve';
+    }
+  
+    // You can customize the response format based on your needs
+    return {
+      passIdentifier: passRecord.passIdentifier,
+      visitorUsername: passRecord.visitorUsername,
+      phoneNumber: passRecord.phoneNumber,
+      issuedBy: passRecord.issuedBy,
+      issueTime: passRecord.issueTime
     };
 }
 

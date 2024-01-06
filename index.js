@@ -142,7 +142,6 @@ app.post('/loginAdmin', async (req, res) => {
 });
 
 
-  
   /**
  * @swagger
  * /loginSecurity:
@@ -173,10 +172,10 @@ app.post('/loginAdmin', async (req, res) => {
  *       '401':
  *         description: Unauthorized - Invalid username or password
  */
-  app.post('/loginSecurity', async (req, res) => {
+app.post('/loginSecurity', async (req, res) => {
     let data = req.body;
-    res.send(await login(client, data));
-  });
+    res.send(await login(client, data, 'Security')); // Specify role as 'Security'
+});
 
 
   /**
@@ -287,7 +286,7 @@ app.post('/loginAdmin', async (req, res) => {
  *     summary: Register a new host
  *     description: Register a new host with username, password, name, email, and phoneNumber
  *     tags:
- *       - Host
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     requestBody:

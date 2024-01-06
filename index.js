@@ -333,15 +333,14 @@ app.post('/registerHost', verifyToken, async (req, res) => {
 });
 
 
-
   /**
  * @swagger
  * /VisitorPass:
  *   post:
  *     summary: Issue a visitor pass
- *     description: Issue a new visitor pass with a valid token obtained from the loginSecurity endpoint
+ *     description: Issue a new visitor pass with a valid token obtained from loginHost
  *     tags:
- *       - Security
+ *       - Host
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -372,6 +371,7 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
     let passData = req.body;
     res.send(await VisitorPass(client, data, passData));
 });
+
 /**
  * @swagger
  * /retrievePass/{passIdentifier}:
@@ -438,6 +438,41 @@ app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) 
 
 /**
  * @swagger
+ * /loginHost:
+ *   post:
+ *     summary: Login as a host
+ *     description: Authenticate and log in as a host with username and password, and receive a token
+ *     tags:
+ *       - Host
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the host
+ *               password:
+ *                 type: string
+ *                 description: The password of the host
+ *             required:
+ *               - username
+ *               - password
+ *     responses:
+ *       '200':
+ *         description: Host login successful, provides a token
+ *       '401':
+ *         description: Unauthorized - Invalid credentials
+ */
+app.post('/loginHost', async (req, res) => {
+    let data = req.body;
+    res.send(await login(client, data, 'Host'));
+});
+
+/**
+ * @swagger
  * /deleteSecurity/{username}:
  *   delete:
  *     summary: Delete a security user
@@ -497,40 +532,36 @@ async function registerAdmin(client, data) {
 
 
 //Function to login
-async function login(client, data) {
-  const adminCollection = client.db("assigment").collection("Admin");
-  const securityCollection = client.db("assigment").collection("Security");
-  const usersCollection = client.db("assigment").collection("Users");
+async function login(client, data, role) {
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
+    const hostCollection = client.db("assigment").collection("Host");
 
-  // Find the admin user
-  let match = await adminCollection.findOne({ username: data.username });
+    let match;
 
-  if (!match) {
-    // Find the security user
-    match = await securityCollection.findOne({ username: data.username });
-  }
-
-  if (!match) {
-    // Find the regular user
-    match = await usersCollection.findOne({ username: data.username });
-  }
-
-  if (match) {
-    // Compare the provided password with the stored password
-    const isPasswordMatch = await decryptPassword(data.password, match.password);
-
-    if (isPasswordMatch) {
-      console.clear(); // Clear the console
-      const token = generateToken(match);
-      console.log(output(match.role));
-      return "\nToken for " + match.name + ": " + token;
+    if (role === 'Admin') {
+        match = await adminCollection.findOne({ username: data.username });
+    } else if (role === 'Security') {
+        match = await securityCollection.findOne({ username: data.username });
+    } else if (role === 'Host') {
+        match = await hostCollection.findOne({ username: data.username });
     }
-     else {
-      return "Wrong password";
+
+    if (match) {
+        // Compare the provided password with the stored password
+        const isPasswordMatch = await decryptPassword(data.password, match.password);
+
+        if (isPasswordMatch) {
+            console.clear(); // Clear the console
+            const token = generateToken(match);
+            console.log(output(match.role));
+            return "\nToken for " + match.name + ": " + token;
+        } else {
+            return "Wrong password";
+        }
+    } else {
+        return "User not found";
     }
-  } else {
-    return "User not found";
-  }
 }
 
 

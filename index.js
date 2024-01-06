@@ -408,8 +408,8 @@ app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
  * @swagger
  * /retrieveContactNumber/{passIdentifier}:
  *   get:
- *     summary: Retrieve contact number from visitor pass
- *     description: Retrieve the contact number of the security associated with the given visitor pass (Only accessible by authenticated admin)
+ *     summary: Retrieve host name and contact from visitor pass
+ *     description: Retrieve the host name and contact associated with the given visitor pass (Only accessible by authenticated security user)
  *     tags:
  *       - Visitor
  *     security:
@@ -423,19 +423,46 @@ app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
  *           type: string
  *     responses:
  *       '200':
- *         description: Contact number retrieved successfully
+ *         description: Host name and contact retrieved successfully
  *       '401':
  *         description: Unauthorized - Token is missing or invalid
  *       '403':
- *         description: Forbidden - Token is not associated with admin access
+ *         description: Forbidden - Token is not associated with security access
  *       '404':
  *         description: Pass not found or unauthorized to retrieve
  */
-app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) => {
+
+app.get('/retrieveContactNumber/:passIdentifier', verifySecurityToken, async (req, res) => {
     let data = req.user;
     let passIdentifier = req.params.passIdentifier;
-    res.send(await retrieveContactNumber(client, data, passIdentifier));
+    res.send(await retrieveHostContact(client, data, passIdentifier));
 });
+
+// New middleware function to verify security token
+function verifySecurityToken(req, res, next) {
+    let header = req.headers.authorization;
+
+    if (!header) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    let token = header.split(' ')[1];
+
+    jwt.verify(token, 'julpassword', function (err, decoded) {
+        if (err) {
+            console.error(err);
+            return res.status(401).send('Invalid token');
+        }
+
+        // Check if the role is 'Security'
+        if (decoded.role !== 'Security') {
+            return res.status(403).send('Forbidden - Token is not associated with security access');
+        }
+
+        req.user = decoded;
+        next();
+    });
+}
 
 /**
  * @swagger
@@ -780,14 +807,15 @@ async function VisitorPass(client, data, passData) {
     return `Visitor pass issued successfully with pass identifier: ${passIdentifier}`;
 }
 
-// Function to retrieve contact number from visitor pass
-async function retrieveContactNumber(client, data, passIdentifier) {
+// Function to retrieve host name and contact from visitor pass
+async function retrieveHostContact(client, data, passIdentifier) {
     // Check if the user's role is 'Security'
     if (data.role !== 'Security') {
-        return 'You do not have the authority to retrieve contact numbers.';
+        return 'You do not have the authority to retrieve host information.';
     }
 
     const passesCollection = client.db('assigment').collection('Passes');
+    const hostCollection = client.db('assigment').collection('Host');
 
     // Find the pass record using the pass identifier
     const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
@@ -796,17 +824,17 @@ async function retrieveContactNumber(client, data, passIdentifier) {
         return 'Pass not found or unauthorized to retrieve';
     }
 
-    // Retrieve the security user associated with the pass
-    const securityUser = await client.db('assigment').collection('Security').findOne({ username: passRecord.issuedBy });
+    // Retrieve the host information associated with the pass
+    const hostInfo = await hostCollection.findOne({ username: passRecord.issuedBy });
 
-    if (!securityUser) {
-        return 'Security user not found';
+    if (!hostInfo) {
+        return 'Host information not found';
     }
 
     // You can customize the response format based on your needs
     return {
-        securityUsername: securityUser.username,
-        securityContactNumber: securityUser.phoneNumber
+        hostName: hostInfo.name,
+        hostContact: hostInfo.phoneNumber
     };
 }
 

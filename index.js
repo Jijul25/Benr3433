@@ -507,6 +507,28 @@ app.delete('/deleteSecurity/:username', verifyToken, async (req, res) => {
 
 /**
  * @swagger
+ * /readHost:
+ *   get:
+ *     summary: Read host data and visitor passes
+ *     description: Retrieve host data and visitor passes using a valid token obtained from loginHost
+ *     tags:
+ *       - Host
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Host data and visitor passes retrieval successful
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ */
+app.get('/readHost', verifyToken, async (req, res) => {
+    let data = req.user;
+    const hostData = await readHost(client, data);
+    res.send(hostData);
+});
+
+/**
+ * @swagger
  * /registerHostWithoutApproval:
  *   post:
  *     summary: Register a new host without security approval
@@ -658,6 +680,22 @@ async function registerHost(client, data, hostData) {
     });
 
     return "Host registered successfully";
+}
+
+// Function to read host data and visitor passes
+async function readHost(client, data) {
+    if (data.role !== 'Host') {
+        return 'You do not have the authority to read host data and visitor passes.';
+    }
+
+    const Host = await client.db('assigment').collection('Host').findOne({ username: data.username });
+    if (!Host) {
+        return 'User not found';
+    }
+
+    const Passes = await client.db('assigment').collection('Passes').find({ issuedBy: data.username }).toArray();
+
+    return { Host, Passes };
 }
 
 //Function to register security 

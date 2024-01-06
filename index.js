@@ -379,7 +379,7 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
  *     summary: Retrieve visitor pass details
  *     description: Retrieve pass details for a visitor using the pass identifier
  *     tags:
- *       - Security
+ *       - Public
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -382,6 +382,39 @@ app.get('/retrieveContactNumber/:passIdentifier', verifyToken, async (req, res) 
     res.send(await retrieveContactNumber(client, data, passIdentifier));
 });
 
+/**
+ * @swagger
+ * /deleteSecurity/{username}:
+ *   delete:
+ *     summary: Delete a security user
+ *     description: Delete a security user with a valid token obtained from loginAdmin
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         description: The username of the security user to be deleted
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Security user deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
+ *       '404':
+ *         description: Security user not found
+ */
+app.delete('/deleteSecurity/:username', verifyToken, async (req, res) => {
+    let data = req.user;
+    let usernameToDelete = req.params.username;
+    res.send(await deleteSecurity(client, data, usernameToDelete));
+});
+
 
 }
 
@@ -464,7 +497,7 @@ async function decryptPassword(password, compare) {
 
 
 
-//Function to register security and visitor
+//Function to register security 
 async function register(client, data, mydata) {
   const adminCollection = client.db("assigment").collection("Admin");
   const securityCollection = client.db("assigment").collection("Security");
@@ -615,28 +648,30 @@ function generatePassIdentifier() {
     return passIdentifier;
 }
   
+// Function to delete a security user
+async function deleteSecurity(client, data, usernameToDelete) {
+    if (data.role !== 'Admin') {
+        return 'You do not have the authority to delete security users.';
+    }
 
+    const securityCollection = client.db('assigment').collection('Security');
 
-//Function to update data
-async function update(client, data, mydata) {
-  const usersCollection = client.db("assigment").collection("Users");
+    // Find the security user to be deleted
+    const securityUserToDelete = await securityCollection.findOne({ username: usernameToDelete });
 
-  if (mydata.password) {
-    mydata.password = await encryptPassword(mydata.password);
-  }
+    if (!securityUserToDelete) {
+        return 'Security user not found';
+    }
 
-  const result = await usersCollection.updateOne(
-    { username: data.username },
-    { $set: mydata }
-  );
+    // Delete the security user document
+    const deleteResult = await securityCollection.deleteOne({ username: usernameToDelete });
 
-  if (result.matchedCount === 0) {
-    return "User not found";
-  }
+    if (deleteResult.deletedCount === 0) {
+        return 'Security user not found';
+    }
 
-  return "Update Successfully";
+    return 'Security user deleted successfully';
 }
-
 
 //Function to delete data
 async function deleteUser(client, data) {

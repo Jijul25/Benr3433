@@ -724,25 +724,37 @@ async function retrievePass(client, data, passIdentifier) {
 // Function to read data
 async function read(client, data) {
     if (data.role === 'Admin') {
-      const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).toArray();
-      const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
-      const Passes = await client.db('assigment').collection('Passes').find().toArray();
-  
-      return { Admins, Securitys, Passes };
+        const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).toArray();
+        const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
+        const Hosts = await client.db('assigment').collection('Host').find({ role: 'Host' }).toArray();
+        const Passes = await client.db('assigment').collection('Passes').find().toArray();
+
+        return { Admins, Securitys, Hosts, Passes };
     }
-  
+
     if (data.role === 'Security') {
-      const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
-      if (!Security) {
-        return 'User not found';
-      }
-  
-      const Passes = await client.db('assigment').collection('Passes').find().toArray();
-  
-      return { Security, Passes };
+        const Security = await client.db('assigment').collection('Security').findOne({ username: data.username });
+        if (!Security) {
+            return 'User not found';
+        }
+
+        const Passes = await client.db('assigment').collection('Passes').find().toArray();
+
+        return { Security, Passes };
     }
-  
-  }
+
+    if (data.role === 'Host') {
+        const Host = await client.db('assigment').collection('Host').findOne({ username: data.username });
+        if (!Host) {
+            return 'User not found';
+        }
+
+        const Passes = await client.db('assigment').collection('Passes').find().toArray();
+
+        return { Host, Passes };
+    }
+}
+
 
 function generatePassIdentifier() {
     // Implement your logic to generate a unique identifier

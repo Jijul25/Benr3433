@@ -286,7 +286,7 @@ app.post('/loginSecurity', async (req, res) => {
  *     summary: Register a new host
  *     description: Register a new host with username, password, name, email, and phoneNumber
  *     tags:
- *       - Host
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -380,7 +380,7 @@ app.post('/VisitorPass', verifyToken, async (req, res) => {
  *     summary: Retrieve visitor pass details
  *     description: Retrieve pass details for a visitor using the pass identifier
  *     tags:
- *       - Public
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -411,7 +411,7 @@ app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
  *     summary: Retrieve contact number from visitor pass
  *     description: Retrieve the contact number of the security associated with the given visitor pass (Only accessible by authenticated admin)
  *     tags:
- *       - Public
+ *       - Visitor
  *     security:
  *       - bearerAuth: []
  *     parameters:

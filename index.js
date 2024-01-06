@@ -485,35 +485,11 @@ async function register(client, data, mydata) {
       email: mydata.email,
       phoneNumber: mydata.phoneNumber,
       role: "Security",
-      visitors: [],
     });
 
     return "Security registered successfully";
   }
 
-  if (data.role === "Security") {
-    const result = await usersCollection.insertOne({
-      username: mydata.username,
-      password: await encryptPassword(mydata.password),
-      name: mydata.name,
-      email: mydata.email,
-      
-      Security: data.username,
-      company: mydata.company,
-      vehicleNumber: mydata.vehicleNumber,
-      icNumber: mydata.icNumber,
-      phoneNumber: mydata.phoneNumber,
-      role: "Visitor",
-      records: [],
-    });
-
-    const updateResult = await securityCollection.updateOne(
-      { username: data.username },
-      { $push: { visitors: mydata.username } }
-    );
-
-    return "Visitor registered successfully";
-  }
 }
 
 // Function to issue a pass
@@ -674,19 +650,7 @@ async function deleteUser(client, data) {
     return "User not found";
   }
 
-  // Update visitors array in other users' documents
-  await usersCollection.updateMany(
-    { visitors: data.username },
-    { $pull: { visitors: data.username } }
-  );
-
-  // Update visitors array in the Security collection
-  await securityCollection.updateMany(
-    { visitors: data.username },
-    { $pull: { visitors: data.username } }
-  );
-
-  return "Delete Successful\nBut the records are still in the database";
+  
 }
 
 

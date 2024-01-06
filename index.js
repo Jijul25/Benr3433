@@ -728,8 +728,8 @@ async function retrievePass(client, data, passIdentifier) {
 async function read(client, data) {
     if (data.role === 'Admin') {
         const Admins = await client.db('assigment').collection('Admin').find({ role: 'Admin' }).toArray();
-        const Securitys = await client.db('assigment').collection('Security').find({ role: 'Security' }).toArray();
-        const Hosts = await client.db('assigment').collection('Host').find({ role: 'Host' }).toArray();
+        const Securitys = await client.db('assigment').collection('Security').find().toArray();
+        const Hosts = await client.db('assigment').collection('Host').find().toArray();
         const Passes = await client.db('assigment').collection('Passes').find().toArray();
 
         return { Admins, Securitys, Hosts, Passes };
@@ -741,9 +741,10 @@ async function read(client, data) {
             return 'User not found';
         }
 
+        const Hosts = await client.db('assigment').collection('Host').find().toArray();
         const Passes = await client.db('assigment').collection('Passes').find().toArray();
 
-        return { Security, Passes };
+        return { Security, Hosts, Passes };
     }
 
     if (data.role === 'Host') {
@@ -757,6 +758,7 @@ async function read(client, data) {
         return { Host, Passes };
     }
 }
+
 
 
 function generatePassIdentifier() {

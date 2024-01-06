@@ -505,6 +505,57 @@ app.delete('/deleteSecurity/:username', verifyToken, async (req, res) => {
     res.send(await deleteSecurity(client, data, usernameToDelete));
 });
 
+/**
+ * @swagger
+ * /registerHostWithoutApproval:
+ *   post:
+ *     summary: Register a new host without security approval
+ *     description: Register a new host without waiting for security approval with username, password, name, email, and phoneNumber
+ *     tags:
+ *       - Host
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the host
+ *               password:
+ *                 type: string
+ *                 description: The password of the host
+ *               name:
+ *                 type: string
+ *                 description: The name of the host
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email of the host
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The phone number of the host
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Host registered successfully without security approval
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '400':
+ *         description: Username already in use, please enter another username
+ */
+
+app.post('/registerHostWithoutApproval', async (req, res) => {
+    let hostData = req.body;
+    res.send(await registerHostWithoutApproval(client, hostData));
+});
+
 
 }
 
@@ -635,6 +686,30 @@ async function register(client, data, mydata) {
     return "Security registered successfully";
   }
 
+}
+
+// Function to register host without security approval
+async function registerHostWithoutApproval(client, hostData) {
+    const hostCollection = client.db('assigment').collection('Host');
+
+    // Check if the username is already in use
+    const tempHost = await hostCollection.findOne({ username: hostData.username });
+
+    if (tempHost) {
+        return "Username already in use, please enter another username";
+    }
+
+    // Register the host without security approval
+    const result = await hostCollection.insertOne({
+        username: hostData.username,
+        password: await encryptPassword(hostData.password),
+        name: hostData.name,
+        email: hostData.email,
+        phoneNumber: hostData.phoneNumber,
+        role: "Host",
+    });
+
+    return "Host registered successfully without security approval";
 }
 
 // Function to issue a pass

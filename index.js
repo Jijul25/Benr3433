@@ -673,21 +673,6 @@ async function deleteSecurity(client, data, usernameToDelete) {
     return 'Security user deleted successfully';
 }
 
-//Function to delete data
-async function deleteUser(client, data) {
-  const usersCollection = client.db("assigment").collection("Users");
-  const recordsCollection = client.db("assigment").collection("Records");
-  const securityCollection = client.db("assigment").collection("Security");
-
-  // Delete user document
-  const deleteResult = await usersCollection.deleteOne({ username: data.username });
-  if (deleteResult.deletedCount === 0) {
-    return "User not found";
-  }
-
-  
-}
-
 
 //Function to output
 function output(data) {

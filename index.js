@@ -437,12 +437,11 @@ async function register(client, data, mydata) {
   const adminCollection = client.db("assigment").collection("Admin");
   const securityCollection = client.db("assigment").collection("Security");
 
-
   const tempAdmin = await adminCollection.findOne({ username: mydata.username });
   const tempSecurity = await securityCollection.findOne({ username: mydata.username });
-  const tempUser = await usersCollection.findOne({ username: mydata.username });
+  
 
-  if (tempAdmin || tempSecurity || tempUser) {
+  if (tempAdmin || tempSecurity ) {
     return "Username already in use, please enter another username";
   }
 

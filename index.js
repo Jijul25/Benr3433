@@ -782,6 +782,7 @@ async function VisitorPass(client, data, passData) {
 
 // Function to retrieve contact number from visitor pass
 async function retrieveContactNumber(client, data, passIdentifier) {
+    // Check if the user's role is 'Security'
     if (data.role !== 'Security') {
         return 'You do not have the authority to retrieve contact numbers.';
     }
@@ -808,6 +809,7 @@ async function retrieveContactNumber(client, data, passIdentifier) {
         securityContactNumber: securityUser.phoneNumber
     };
 }
+
 
 // Function to retrieve pass details
 async function retrievePass(client, data, passIdentifier) {

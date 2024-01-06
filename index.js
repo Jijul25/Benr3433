@@ -279,6 +279,60 @@ async function run() {
     res.send(await read(client, data));
   });
 
+  /**
+ * @swagger
+ * /registerHost:
+ *   post:
+ *     summary: Register a new host
+ *     description: Register a new host with username, password, name, email, and phoneNumber
+ *     tags:
+ *       - Host
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The username of the host
+ *               password:
+ *                 type: string
+ *                 description: The password of the host
+ *               name:
+ *                 type: string
+ *                 description: The name of the host
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email of the host
+ *               phoneNumber:
+ *                 type: string
+ *                 description: The phone number of the host
+ *             required:
+ *               - username
+ *               - password
+ *               - name
+ *               - email
+ *               - phoneNumber
+ *     responses:
+ *       '200':
+ *         description: Host registered successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '400':
+ *         description: Username already in use, please enter another username
+ */
+app.post('/registerHost', verifyToken, async (req, res) => {
+    let data = req.user;
+    let hostData = req.body;
+    res.send(await registerHost(client, data, hostData));
+});
+
+
 
   /**
  * @swagger
@@ -495,7 +549,31 @@ async function decryptPassword(password, compare) {
 }
 
 
+// Function to register host
+async function registerHost(client, data, hostData) {
+    const adminCollection = client.db("assigment").collection("Admin");
+    const hostCollection = client.db("assigment").collection("Host");
 
+    const tempAdmin = await adminCollection.findOne({ username: hostData.username });
+    const tempHost = await hostCollection.findOne({ username: hostData.username });
+
+    if (tempAdmin || tempHost) {
+        return "Username already in use, please enter another username";
+    }
+
+    if (data.role === "Admin") {
+        const result = await hostCollection.insertOne({
+            username: hostData.username,
+            password: await encryptPassword(hostData.password),
+            name: hostData.name,
+            email: hostData.email,
+            phoneNumber: hostData.phoneNumber,
+            role: "Host",
+        });
+
+        return "Host registered successfully";
+    }
+}
 
 //Function to register security 
 async function register(client, data, mydata) {

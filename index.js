@@ -286,7 +286,7 @@ app.post('/loginSecurity', async (req, res) => {
  *     summary: Register a new host
  *     description: Register a new host with username, password, name, email, and phoneNumber
  *     tags:
- *       - Security
+ *       - Host
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -322,11 +322,12 @@ app.post('/loginSecurity', async (req, res) => {
  *       '200':
  *         description: Host registered successfully
  *       '401':
- *         description: Unauthorized - Token is missing or invalid
+ *         description: Unauthorized - Token is missing or invalid or user is not a security user
  *       '400':
  *         description: Username already in use, please enter another username
  */
-app.post('/registerHost', verifyToken, async (req, res) => {
+
+  app.post('/registerHost', verifyToken, async (req, res) => {
     let data = req.user;
     let hostData = req.body;
     res.send(await registerHost(client, data, hostData));
@@ -582,28 +583,30 @@ async function decryptPassword(password, compare) {
 
 // Function to register host
 async function registerHost(client, data, hostData) {
-    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
     const hostCollection = client.db("assigment").collection("Host");
 
-    const tempAdmin = await adminCollection.findOne({ username: hostData.username });
+    // Check if the user is a security user
+    if (data.role !== "Security") {
+        return "Unauthorized - Only security users can register hosts";
+    }
+
     const tempHost = await hostCollection.findOne({ username: hostData.username });
 
-    if (tempAdmin || tempHost) {
+    if (tempHost) {
         return "Username already in use, please enter another username";
     }
 
-    if (data.role === "Admin") {
-        const result = await hostCollection.insertOne({
-            username: hostData.username,
-            password: await encryptPassword(hostData.password),
-            name: hostData.name,
-            email: hostData.email,
-            phoneNumber: hostData.phoneNumber,
-            role: "Host",
-        });
+    const result = await hostCollection.insertOne({
+        username: hostData.username,
+        password: await encryptPassword(hostData.password),
+        name: hostData.name,
+        email: hostData.email,
+        phoneNumber: hostData.phoneNumber,
+        role: "Host",
+    });
 
-        return "Host registered successfully";
-    }
+    return "Host registered successfully";
 }
 
 //Function to register security 

@@ -702,7 +702,7 @@ async function retrievePass(client, data, passIdentifier) {
     const securityCollection = client.db('assigment').collection('Security');
   
     // Check if the security user has the authority to retrieve pass details
-    if (data.role !== 'Security') {
+    if (data.role !== 'Host') {
       return 'You do not have the authority to retrieve pass details.';
     }
   

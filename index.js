@@ -643,7 +643,7 @@ async function VisitorPass(client, data, passData) {
     
 
     // Check if the security user has the authority to issue passes
-    if (data.role !== 'Security') {
+    if (data.role !== 'Host') {
         return 'You do not have the authority to issue passes.';
     }
 

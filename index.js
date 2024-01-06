@@ -136,10 +136,11 @@ async function run() {
  *       '401':
  *         description: Unauthorized - Invalid credentials
  */
-  app.post('/loginAdmin', async (req, res) => {
+app.post('/loginAdmin', async (req, res) => {
     let data = req.body;
-    res.send(await login(client, data));
-  });
+    res.send(await login(client, data, 'Admin')); // Specify role as 'Admin'
+});
+
 
   
   /**

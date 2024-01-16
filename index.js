@@ -618,19 +618,20 @@ function generateToken(userProfile){
   { expiresIn: '2h' });  //expires after 2 hour
 }
 
-//Function to register admin
 async function registerAdmin(client, data) {
   data.password = await encryptPassword(data.password);
-  
-  const existingUser = await client.db("assigment").collection("Admin").findOne({ username: data.username });
-  if (existingUser) {
-    return 'Username already registered';
-  } else {
-    const result = await client.db("assigment").collection("Admin").insertOne(data);
-    return 'Admin registered';
-  }
-}
+  const adminCollection = client.db("assigment").collection("Admin");
 
+  // Check if an admin already exists
+  const existingAdmin = await adminCollection.findOne({ role: 'Admin' });
+
+  if (existingAdmin) {
+      return 'An admin is already registered';
+  }
+
+  const result = await adminCollection.insertOne(data);
+  return 'Admin registered';
+}
 
 //Function to login
 async function login(client, data, role) {

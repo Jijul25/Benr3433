@@ -556,6 +556,38 @@ app.get('/readHost', verifyToken, async (req, res) => {
 
 /**
  * @swagger
+ * /deletePass/{passIdentifier}:
+ *   delete:
+ *     summary: Delete a visitor pass without authentication
+ *     description: Delete a visitor pass using the pass identifier without authentication
+ *     tags:
+ *       - Visitor
+ *     parameters:
+ *       - in: path
+ *         name: passIdentifier
+ *         required: true
+ *         description: The unique pass identifier
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Visitor pass deleted successfully
+ *       '404':
+ *         description: Pass not found
+ */
+app.delete('/deletePass/:passIdentifier', async (req, res) => {
+    const passIdentifier = req.params.passIdentifier;
+    const result = await deletePass(client, passIdentifier);
+
+    if (result === 'Pass not found') {
+        return res.status(404).send(result);
+    }
+
+    res.send(result);
+});
+
+/**
+ * @swagger
  * /registerHostWithoutApproval:
  *   post:
  *     summary: Register a new host without security approval
@@ -681,6 +713,22 @@ async function decryptPassword(password, compare) {
   return match
 }
 
+// Function to delete a visitor pass
+async function deletePass(client, passIdentifier) {
+    const passesCollection = client.db('assigment').collection('Passes');
+
+    // Find the pass record using the pass identifier
+    const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
+
+    if (!passRecord) {
+        return 'Pass not found';
+    }
+
+    // Delete the pass record
+    await passesCollection.deleteOne({ passIdentifier: passIdentifier });
+
+    return 'Visitor pass deleted successfully';
+}
 
 // Function to register host
 async function registerHost(client, data, hostData) {
@@ -941,18 +989,6 @@ async function deleteSecurity(client, data, usernameToDelete) {
     }
 
     return 'Security user deleted successfully';
-}
-
-
-//Function to output
-function output(data) {
-  if(data == 'Admin') {
-    return "You are logged in as Admin\n1)register Security\n2)read all data"
-  } else if (data == 'Security') {
-    return "You are logged in as Security\n1)register Visitor\n2)read security and visitor data"
-  } else if (data == 'Visitor') {
-    return "You are logged in as Visitor\n1)check in\n2)check out\n3)read visitor data\n4)update profile\n5)delete account"
-  }
 }
 
 //to verify JWT Token

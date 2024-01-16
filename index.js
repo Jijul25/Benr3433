@@ -499,38 +499,6 @@ app.post('/loginHost', async (req, res) => {
     res.send(await login(client, data, 'Host'));
 });
 
-/**
- * @swagger
- * /deleteSecurity/{username}:
- *   delete:
- *     summary: Delete a security user
- *     description: Delete a security user with a valid token obtained from loginAdmin
- *     tags:
- *       - Admin
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: username
- *         required: true
- *         description: The username of the security user to be deleted
- *         schema:
- *           type: string
- *     responses:
- *       '200':
- *         description: Security user deleted successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '403':
- *         description: Forbidden - Token is not associated with admin access
- *       '404':
- *         description: Security user not found
- */
-app.delete('/deleteSecurity/:username', verifyToken, async (req, res) => {
-    let data = req.user;
-    let usernameToDelete = req.params.username;
-    res.send(await deleteSecurity(client, data, usernameToDelete));
-});
 
 /**
  * @swagger
@@ -1007,31 +975,6 @@ function generatePassIdentifier() {
     return passIdentifier;
 }
   
-// Function to delete a security user
-async function deleteSecurity(client, data, usernameToDelete) {
-    if (data.role !== 'Admin') {
-        return 'You do not have the authority to delete security users.';
-    }
-
-    const securityCollection = client.db('assigment').collection('Security');
-
-    // Find the security user to be deleted
-    const securityUserToDelete = await securityCollection.findOne({ username: usernameToDelete });
-
-    if (!securityUserToDelete) {
-        return 'Security user not found';
-    }
-
-    // Delete the security user document
-    const deleteResult = await securityCollection.deleteOne({ username: usernameToDelete });
-
-    if (deleteResult.deletedCount === 0) {
-        return 'Security user not found';
-    }
-
-    return 'Security user deleted successfully';
-}
-
 //to verify JWT Token
 function verifyToken(req, res, next) {
   let header = req.headers.authorization;

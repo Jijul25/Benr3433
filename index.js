@@ -29,7 +29,7 @@ const options = {
         }
     },
     apis: ['./index.js'],
-    customCss: '.swagger-ui .topbar { background-color: #3498db; } body { background-color: #FFC0CB; }',
+    customCss: '.swagger-ui .topbar { background-color: #00827F; } body { background-color: #F2D4D7; }',
 };
 
 const swaggerSpec = swaggerJsdoc(options);

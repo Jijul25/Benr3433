@@ -18,9 +18,9 @@ const options = {
             title: 'Welcome to web app Secure Info',
             version: '1.0.0'
         },
-        components: {  // Add 'components' section
-            securitySchemes: {  // Define 'securitySchemes'
-                bearerAuth: {  // Define 'bearerAuth'
+        components: {
+            securitySchemes: {
+                bearerAuth: {
                     type: 'http',
                     scheme: 'bearer',
                     bearerFormat: 'JWT'
@@ -29,10 +29,11 @@ const options = {
         }
     },
     apis: ['./index.js'],
+    customCss: '.swagger-ui .topbar { background-color: #3498db; } body { background-color: #ecf0f1; }',
 };
 
 const swaggerSpec = swaggerJsdoc(options);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customCss: options.customCss }));
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {

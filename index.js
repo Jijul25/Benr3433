@@ -556,38 +556,6 @@ app.get('/readHost', verifyToken, async (req, res) => {
 
 /**
  * @swagger
- * /deletePass/{passIdentifier}:
- *   delete:
- *     summary: Delete a visitor pass without authentication
- *     description: Delete a visitor pass using the pass identifier without authentication
- *     tags:
- *       - Visitor
- *     parameters:
- *       - in: path
- *         name: passIdentifier
- *         required: true
- *         description: The unique pass identifier
- *         schema:
- *           type: string
- *     responses:
- *       '200':
- *         description: Visitor pass deleted successfully
- *       '404':
- *         description: Pass not found
- */
-app.delete('/deletePass/:passIdentifier', async (req, res) => {
-    const passIdentifier = req.params.passIdentifier;
-    const result = await deletePass(client, passIdentifier);
-
-    if (result === 'Pass not found') {
-        return res.status(404).send(result);
-    }
-
-    res.send(result);
-});
-
-/**
- * @swagger
  * /registerHostWithoutApproval:
  *   post:
  *     summary: Register a new host without security approval
@@ -635,6 +603,52 @@ app.delete('/deletePass/:passIdentifier', async (req, res) => {
 app.post('/registerHostWithoutApproval', async (req, res) => {
     let hostData = req.body;
     res.send(await registerHostWithoutApproval(client, hostData));
+});
+
+/**
+ * @swagger
+ * /deleteUser/{username}:
+ *   delete:
+ *     summary: Delete a user (security, host, or visitor)
+ *     description: Delete a user with a valid token obtained from loginAdmin
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         description: The username of the user to be deleted
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         required: true
+ *         description: The role of the user to be deleted (Security, Host, or Visitor)
+ *         schema:
+ *           type: string
+ *           enum: [Security, Host, Visitor]
+ *     responses:
+ *       '200':
+ *         description: User deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
+ *       '404':
+ *         description: User not found
+ */
+app.delete('/deleteUser/:username', verifyToken, async (req, res) => {
+    let data = req.user;
+    let usernameToDelete = req.params.username;
+    let roleToDelete = req.query.role;
+
+    if (!['Security', 'Host', 'Visitor'].includes(roleToDelete)) {
+        return res.status(400).send('Invalid role specified');
+    }
+
+    res.send(await deleteUser(client, data, usernameToDelete, roleToDelete));
 });
 
 
@@ -713,22 +727,6 @@ async function decryptPassword(password, compare) {
   return match
 }
 
-// Function to delete a visitor pass
-async function deletePass(client, passIdentifier) {
-    const passesCollection = client.db('assigment').collection('Passes');
-
-    // Find the pass record using the pass identifier
-    const passRecord = await passesCollection.findOne({ passIdentifier: passIdentifier });
-
-    if (!passRecord) {
-        return 'Pass not found';
-    }
-
-    // Delete the pass record
-    await passesCollection.deleteOne({ passIdentifier: passIdentifier });
-
-    return 'Visitor pass deleted successfully';
-}
 
 // Function to register host
 async function registerHost(client, data, hostData) {
@@ -887,6 +885,51 @@ async function retrieveHostContact(client, data, passIdentifier) {
     };
 }
 
+// Function to delete a user (security, host, or visitor)
+async function deleteUser(client, data, usernameToDelete, roleToDelete) {
+    if (data.role !== 'Admin') {
+        return 'You do not have the authority to delete users.';
+    }
+
+    const collectionName = getCollectionNameByRole(roleToDelete);
+
+    if (!collectionName) {
+        return 'Invalid role specified';
+    }
+
+    const userCollection = client.db('assigment').collection(collectionName);
+
+    // Find the user to be deleted
+    const userToDelete = await userCollection.findOne({ username: usernameToDelete });
+
+    if (!userToDelete) {
+        return 'User not found';
+    }
+
+    // Delete the user document
+    const deleteResult = await userCollection.deleteOne({ username: usernameToDelete });
+
+    if (deleteResult.deletedCount === 0) {
+        return 'User not found';
+    }
+
+    return 'User deleted successfully';
+}
+
+// Helper function to get the MongoDB collection name based on the user role
+function getCollectionNameByRole(role) {
+    switch (role) {
+        case 'Security':
+            return 'Security';
+        case 'Host':
+            return 'Host';
+        case 'Visitor':
+            return 'Passes';
+        default:
+            return null;
+    }
+}
+
 
 // Function to retrieve pass details
 async function retrievePass(client, data, passIdentifier) {
@@ -950,8 +993,6 @@ async function read(client, data) {
         return { Host, Passes };
     }
 }
-
-
 
 function generatePassIdentifier() {
     // Implement your logic to generate a unique identifier

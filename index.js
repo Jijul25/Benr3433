@@ -499,6 +499,51 @@ app.post('/loginHost', async (req, res) => {
     res.send(await login(client, data, 'Host'));
 });
 
+/**
+ * @swagger
+ * /deleteUser/{username}:
+ *   delete:
+ *     summary: Delete a user (security, host, or visitor)
+ *     description: Delete a user with a valid token obtained from loginAdmin
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         description: The username of the user to be deleted
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         required: true
+ *         description: The role of the user to be deleted (Security, Host, or Visitor)
+ *         schema:
+ *           type: string
+ *           enum: [Security, Host, Visitor]
+ *     responses:
+ *       '200':
+ *         description: User deleted successfully
+ *       '401':
+ *         description: Unauthorized - Token is missing or invalid
+ *       '403':
+ *         description: Forbidden - Token is not associated with admin access
+ *       '404':
+ *         description: User not found
+ */
+app.delete('/deleteUser/:username', verifyToken, async (req, res) => {
+    let data = req.user;
+    let usernameToDelete = req.params.username;
+    let roleToDelete = req.query.role;
+
+    if (!['Security', 'Host', 'Visitor'].includes(roleToDelete)) {
+        return res.status(400).send('Invalid role specified');
+    }
+
+    res.send(await deleteUser(client, data, usernameToDelete, roleToDelete));
+});
 
 /**
  * @swagger
@@ -572,53 +617,6 @@ app.post('/registerHostWithoutApproval', async (req, res) => {
     let hostData = req.body;
     res.send(await registerHostWithoutApproval(client, hostData));
 });
-
-/**
- * @swagger
- * /deleteUser/{username}:
- *   delete:
- *     summary: Delete a user (security, host, or visitor)
- *     description: Delete a user with a valid token obtained from loginAdmin
- *     tags:
- *       - Admin
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: username
- *         required: true
- *         description: The username of the user to be deleted
- *         schema:
- *           type: string
- *       - in: query
- *         name: role
- *         required: true
- *         description: The role of the user to be deleted (Security, Host, or Visitor)
- *         schema:
- *           type: string
- *           enum: [Security, Host, Visitor]
- *     responses:
- *       '200':
- *         description: User deleted successfully
- *       '401':
- *         description: Unauthorized - Token is missing or invalid
- *       '403':
- *         description: Forbidden - Token is not associated with admin access
- *       '404':
- *         description: User not found
- */
-app.delete('/deleteUser/:username', verifyToken, async (req, res) => {
-    let data = req.user;
-    let usernameToDelete = req.params.username;
-    let roleToDelete = req.query.role;
-
-    if (!['Security', 'Host', 'Visitor'].includes(roleToDelete)) {
-        return res.status(400).send('Invalid role specified');
-    }
-
-    res.send(await deleteUser(client, data, usernameToDelete, roleToDelete));
-});
-
 
 }
 
@@ -853,51 +851,6 @@ async function retrieveHostContact(client, data, passIdentifier) {
     };
 }
 
-// Function to delete a user (security, host, or visitor)
-async function deleteUser(client, data, usernameToDelete, roleToDelete) {
-    if (data.role !== 'Admin') {
-        return 'You do not have the authority to delete users.';
-    }
-
-    const collectionName = getCollectionNameByRole(roleToDelete);
-
-    if (!collectionName) {
-        return 'Invalid role specified';
-    }
-
-    const userCollection = client.db('assigment').collection(collectionName);
-
-    // Find the user to be deleted
-    const userToDelete = await userCollection.findOne({ username: usernameToDelete });
-
-    if (!userToDelete) {
-        return 'User not found';
-    }
-
-    // Delete the user document
-    const deleteResult = await userCollection.deleteOne({ username: usernameToDelete });
-
-    if (deleteResult.deletedCount === 0) {
-        return 'User not found';
-    }
-
-    return 'User deleted successfully';
-}
-
-// Helper function to get the MongoDB collection name based on the user role
-function getCollectionNameByRole(role) {
-    switch (role) {
-        case 'Security':
-            return 'Security';
-        case 'Host':
-            return 'Host';
-        case 'Visitor':
-            return 'Passes';
-        default:
-            return null;
-    }
-}
-
 
 // Function to retrieve pass details
 async function retrievePass(client, data, passIdentifier) {
@@ -975,6 +928,62 @@ function generatePassIdentifier() {
     return passIdentifier;
 }
   
+// Function to delete a user (security, host, or visitor)
+async function deleteUser(client, data, usernameToDelete, roleToDelete) {
+    if (data.role !== 'Admin') {
+        return 'You do not have the authority to delete users.';
+    }
+
+    const collectionName = getCollectionNameByRole(roleToDelete);
+
+    if (!collectionName) {
+        return 'Invalid role specified';
+    }
+
+    const userCollection = client.db('assigment').collection(collectionName);
+
+    // Find the user to be deleted
+    const userToDelete = await userCollection.findOne({ username: usernameToDelete });
+
+    if (!userToDelete) {
+        return 'User not found';
+    }
+
+    // Delete the user document
+    const deleteResult = await userCollection.deleteOne({ username: usernameToDelete });
+
+    if (deleteResult.deletedCount === 0) {
+        return 'User not found';
+    }
+
+    return 'User deleted successfully';
+}
+
+// Helper function to get the MongoDB collection name based on the user role
+function getCollectionNameByRole(role) {
+    switch (role) {
+        case 'Security':
+            return 'Security';
+        case 'Host':
+            return 'Host';
+        case 'Visitor':
+            return 'Passes';
+        default:
+            return null;
+    }
+}
+
+//Function to output
+function output(data) {
+  if(data == 'Admin') {
+    return "You are logged in as Admin\n1)register Security\n2)read all data"
+  } else if (data == 'Security') {
+    return "You are logged in as Security\n1)register Visitor\n2)read security and visitor data"
+  } else if (data == 'Visitor') {
+    return "You are logged in as Visitor\n1)check in\n2)check out\n3)read visitor data\n4)update profile\n5)delete account"
+  }
+}
+
 //to verify JWT Token
 function verifyToken(req, res, next) {
   let header = req.headers.authorization;

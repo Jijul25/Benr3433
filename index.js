@@ -705,6 +705,10 @@ async function login(client, data, role) {
         } else {
             // Increment login attempts on unsuccessful login
             loginAttempts++;
+            console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
+
+            // Update login attempts and last login attempt timestamp in the database
+            await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
 
             if (loginAttempts >= maxRetries) {
                 // Set cooldown if maximum retries reached
@@ -713,19 +717,12 @@ async function login(client, data, role) {
                 // Update login attempts and last login attempt timestamp in the database
                 await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
                 return "Login failed";
-            } else {
-                console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
             }
         }
     } else if (!cooldownElapsed) {
         console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - lastLoginAttempt)) / 1000)} seconds.`);
     } else {
         console.log("User not found");
-    }
-
-    // Update login attempts and last login attempt timestamp in the database
-    if (match) {
-        await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
     }
 
     return "Login failed";
@@ -744,6 +741,7 @@ async function updateLoginAttempts(client, role, username, loginAttempts, lastLo
         }
     );
 }
+
 
 
 

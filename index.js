@@ -665,8 +665,11 @@ async function registerAdmin(client, data) {
   }
   
 
-//Function to login
+// Function to login
 async function login(client, data, role) {
+    const maxRetries = 5;
+    const cooldownPeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
+
     const adminCollection = client.db("assigment").collection("Admin");
     const securityCollection = client.db("assigment").collection("Security");
     const hostCollection = client.db("assigment").collection("Host");
@@ -681,22 +684,64 @@ async function login(client, data, role) {
         match = await hostCollection.findOne({ username: data.username });
     }
 
-    if (match) {
+    // Initialize the login attempt counter and last login attempt timestamp
+    let loginAttempts = match ? match.loginAttempts || 0 : 0;
+    let lastLoginAttempt = match ? match.lastLoginAttempt || 0 : 0;
+
+    // Check if cooldown period has elapsed
+    const cooldownElapsed = Date.now() - lastLoginAttempt > cooldownPeriod;
+
+    if (match && cooldownElapsed) {
         // Compare the provided password with the stored password
         const isPasswordMatch = await decryptPassword(data.password, match.password);
 
         if (isPasswordMatch) {
+            // Reset login attempts on successful login
+            loginAttempts = 0;
             console.clear(); // Clear the console
             const token = generateToken(match);
             console.log(output(match.role));
             return "\nToken for " + match.name + ": " + token;
         } else {
-            return "Wrong password";
+            // Increment login attempts on unsuccessful login
+            loginAttempts++;
+
+            if (loginAttempts >= maxRetries) {
+                // Set cooldown if maximum retries reached
+                lastLoginAttempt = Date.now();
+                console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
+            } else {
+                console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
+            }
         }
+    } else if (!cooldownElapsed) {
+        console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
     } else {
-        return "User not found";
+        console.log("User not found");
     }
+
+    // Update login attempts and last login attempt timestamp in the database
+    if (match) {
+        await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
+    }
+
+    return "Login failed";
 }
+
+// Function to update login attempts and last login attempt timestamp in the database
+async function updateLoginAttempts(client, role, username, loginAttempts, lastLoginAttempt) {
+    const collection = client.db("assigment").collection(role);
+    await collection.updateOne(
+        { username: username },
+        {
+            $set: {
+                loginAttempts: loginAttempts,
+                lastLoginAttempt: lastLoginAttempt
+            }
+        }
+    );
+}
+
 
 //Function to encrypt password
 async function encryptPassword(password) {
@@ -904,7 +949,6 @@ async function retrieveHostContact(client, data, passIdentifier) {
     if (!passRecord) {
         return 'Pass not found or unauthorized to retrieve';
     }
-
     // Retrieve the host information associated with the pass
     const hostInfo = await hostCollection.findOne({ username: passRecord.issuedBy });
 
@@ -923,7 +967,6 @@ async function retrieveHostContact(client, data, passIdentifier) {
 // Function to retrieve pass details
 async function retrievePass(client, data, passIdentifier) {
     const passesCollection = client.db('assigment').collection('Passes');
-    const securityCollection = client.db('assigment').collection('Security');
   
     // Check if the security user has the authority to retrieve pass details
     if (data.role !== 'Host') {
@@ -946,7 +989,6 @@ async function retrievePass(client, data, passIdentifier) {
       issueTime: passRecord.issueTime
     };
 }
-
 
 // Function to read data
 async function read(client, data) {

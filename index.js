@@ -964,11 +964,17 @@ async function read(client, data) {
         if (!Security) {
             return 'User not found';
         }
-
+    
+        // Assuming Security.role has the necessary role information
+        if (Security.role !== 'Security') {
+            return 'Insufficient permissions';
+        }
+    
+        // Read only the necessary collections (Hosts and Passes)
         const Hosts = await client.db('assigment').collection('Host').find().toArray();
         const Passes = await client.db('assigment').collection('Passes').find().toArray();
-
-        return { Security, Hosts, Passes };
+    
+        return { Hosts, Passes };
     }
 
     if (data.role === 'Host') {

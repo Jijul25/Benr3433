@@ -707,17 +707,18 @@ async function login(client, data, role) {
             loginAttempts++;
             console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
 
-            // Update login attempts and last login attempt timestamp in the database
-            await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
-
             if (loginAttempts >= maxRetries) {
                 // Set cooldown if maximum retries reached
                 lastLoginAttempt = Date.now();
                 console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
-                // Update login attempts and last login attempt timestamp in the database
-                await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
-                return "Login failed";
             }
+        }
+
+        // Update login attempts and last login attempt timestamp in the database
+        await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
+
+        if (loginAttempts >= maxRetries) {
+            return "Login failed";
         }
     } else if (!cooldownElapsed) {
         console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - lastLoginAttempt)) / 1000)} seconds.`);
@@ -741,6 +742,7 @@ async function updateLoginAttempts(client, role, username, loginAttempts, lastLo
         }
     );
 }
+
 
 
 

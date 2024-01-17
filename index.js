@@ -701,6 +701,7 @@ async function login(client, data, role) {
                 // Lock the account if maximum retries reached
                 loginAttempts.set(data.username, Date.now() + cooldownPeriod);
                 console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${cooldownPeriod / 1000} seconds.`);
+                return "Login failed";
             } else {
                 loginAttempts.set(data.username, attempts + 1);
             }
@@ -716,38 +717,17 @@ async function login(client, data, role) {
     return "Login failed";
 }
 
-
-// Function to update login attempts and last login attempt timestamp in the database
-async function updateLoginAttempts(client, role, username, loginAttempts, lastLoginAttempt) {
-    const collection = client.db("assigment").collection(role);
-    await collection.updateOne(
-        { username: username },
-        {
-            $set: {
-                loginAttempts: loginAttempts,
-                lastLoginAttempt: lastLoginAttempt
-            }
-        }
-    );
-}
-
-
-
-
-
 //Function to encrypt password
 async function encryptPassword(password) {
   const hash = await bcrypt.hash(password, saltRounds); 
   return hash 
 }
 
-
 //Function to decrypt password
 async function decryptPassword(password, compare) {
   const match = await bcrypt.compare(password, compare)
   return match
 }
-
 
 // Function to register host
 async function registerHost(client, data, hostData) {
@@ -829,7 +809,6 @@ function validateStrongPassword(password) {
     }
   }
   
-
 
 // Function to register security 
 async function register(client, data, mydata) {

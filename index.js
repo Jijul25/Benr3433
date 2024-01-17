@@ -2,11 +2,21 @@ const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongod
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const passwordValidator = require('password-validator');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
 const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
+const passwordSchema = new passwordValidator();
+passwordSchema
+  .is().min(8)            // Minimum length 8
+  .is().max(100)          // Maximum length 100
+  .has().uppercase()      // Must have uppercase letters
+  .has().lowercase()      // Must have lowercase letters
+  .has().digits()         // Must have digits
+  .has().not().spaces();   // Should not have spaces
+
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -631,18 +641,24 @@ function generateToken(userProfile){
   { expiresIn: '2h' });  //expires after 2 hour
 }
 
+// Function to register admin
 async function registerAdmin(client, data) {
-  data.password = await encryptPassword(data.password);
-  const adminCollection = client.db("assigment").collection("Admin");
-
-  // Check if an admin already exists
-  const existingAdmin = await adminCollection.findOne({ role: 'Admin' });
-
-  if (existingAdmin) {
+    data.password = await encryptPassword(data.password);
+  
+    // Validate password strength
+    if (!validateStrongPassword(data.password)) {
+      return 'Weak password. Please choose a stronger password.';
+    }
+  
+    const adminCollection = client.db("assigment").collection("Admin");
+  
+    // Check if an admin already exists
+    const existingAdmin = await adminCollection.findOne({ role: 'Admin' });
+  
+    if (existingAdmin) {
       return 'An admin is already registered';
-  }
-
-  const result = await adminCollection.insertOne(data);
+    }
+    const result = await adminCollection.insertOne(data);
   return 'Admin registered';
 }
 
@@ -679,8 +695,6 @@ async function login(client, data, role) {
     }
 }
 
-
-
 //Function to encrypt password
 async function encryptPassword(password) {
   const hash = await bcrypt.hash(password, saltRounds); 
@@ -699,30 +713,34 @@ async function decryptPassword(password, compare) {
 async function registerHost(client, data, hostData) {
     const securityCollection = client.db("assigment").collection("Security");
     const hostCollection = client.db("assigment").collection("Host");
-
+  
+    // Validate password strength
+    if (!validateStrongPassword(hostData.password)) {
+      return 'Weak password. Please choose a stronger password.';
+    }
+  
     // Check if the user is a security user
     if (data.role !== "Security") {
-        return "Unauthorized - Only security users can register hosts";
+      return "Unauthorized - Only security users can register hosts";
     }
-
+  
     const tempHost = await hostCollection.findOne({ username: hostData.username });
-
+  
     if (tempHost) {
-        return "Username already in use, please enter another username";
+      return "Username already in use, please enter another username";
     }
-
+  
     const result = await hostCollection.insertOne({
-        username: hostData.username,
-        password: await encryptPassword(hostData.password),
-        name: hostData.name,
-        email: hostData.email,
-        phoneNumber: hostData.phoneNumber,
-        role: "Host",
+      username: hostData.username,
+      password: await encryptPassword(hostData.password),
+      name: hostData.name,
+      email: hostData.email,
+      phoneNumber: hostData.phoneNumber,
+      role: "Host",
     });
-
+  
     return "Host registered successfully";
-}
-
+  }
 // Function to read host data and visitor passes
 async function readHost(client, data) {
     if (data.role !== 'Host') {
@@ -739,33 +757,42 @@ async function readHost(client, data) {
     return { Host, Passes };
 }
 
-//Function to register security 
+// Function to validate a strong password
+function validateStrongPassword(password) {
+    return passwordSchema.validate(password);
+  }
+
+
+// Function to register security
 async function register(client, data, mydata) {
-  const adminCollection = client.db("assigment").collection("Admin");
-  const securityCollection = client.db("assigment").collection("Security");
-
-  const tempAdmin = await adminCollection.findOne({ username: mydata.username });
-  const tempSecurity = await securityCollection.findOne({ username: mydata.username });
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
   
-
-  if (tempAdmin || tempSecurity ) {
-    return "Username already in use, please enter another username";
+    const tempAdmin = await adminCollection.findOne({ username: mydata.username });
+    const tempSecurity = await securityCollection.findOne({ username: mydata.username });
+  
+    // Validate password strength
+    if (!validateStrongPassword(mydata.password)) {
+      return 'Weak password. Please choose a stronger password.';
+    }
+  
+    if (tempAdmin || tempSecurity) {
+      return "Username already in use, please enter another username";
+    }
+  
+    if (data.role === "Admin") {
+      const result = await securityCollection.insertOne({
+        username: mydata.username,
+        password: await encryptPassword(mydata.password),
+        name: mydata.name,
+        email: mydata.email,
+        phoneNumber: mydata.phoneNumber,
+        role: "Security",
+      });
+  
+      return "Security registered successfully";
+    }
   }
-
-  if (data.role === "Admin") {
-    const result = await securityCollection.insertOne({
-      username: mydata.username,
-      password: await encryptPassword(mydata.password),
-      name: mydata.name,
-      email: mydata.email,
-      phoneNumber: mydata.phoneNumber,
-      role: "Security",
-    });
-
-    return "Security registered successfully";
-  }
-
-}
 
 // Function to register host without security approval
 async function registerHostWithoutApproval(client, hostData) {

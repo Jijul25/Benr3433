@@ -421,7 +421,7 @@ app.get('/retrievePass/:passIdentifier', verifyToken, async (req, res) => {
  *     summary: Retrieve host name and contact from visitor pass
  *     description: Retrieve the host name and contact associated with the given visitor pass (Only accessible by authenticated security user)
  *     tags:
- *       - Visitor
+ *       - Security
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -665,35 +665,68 @@ async function registerAdmin(client, data) {
   }
   
 
-//Function to login
+// Assuming you have a variable to store login attempts and cooldown timestamp
+let loginAttempts = {};
+
+// Function to check if the user is in cooldown
+function isInCooldown(username) {
+    const lastAttemptTime = loginAttempts[username];
+    if (lastAttemptTime) {
+        const currentTime = new Date().getTime();
+        const cooldownTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+        return currentTime - lastAttemptTime < cooldownTime;
+    }
+    return false;
+}
+
+// Function to update login attempts
+function updateLoginAttempts(username) {
+    if (!loginAttempts[username]) {
+        loginAttempts[username] = new Date().getTime();
+    }
+}
+
+// Function to login
 async function login(client, data, role) {
-    const adminCollection = client.db("assigment").collection("Admin");
-    const securityCollection = client.db("assigment").collection("Security");
-    const hostCollection = client.db("assigment").collection("Host");
+    const username = data.username;
+
+    if (isInCooldown(username)) {
+        return `Too many login attempts. Please try again after 5 minutes.`;
+    }
+
+    const adminCollection = client.db("assignment").collection("Admin");
+    const securityCollection = client.db("assignment").collection("Security");
+    const hostCollection = client.db("assignment").collection("Host");
 
     let match;
 
     if (role === 'Admin') {
-        match = await adminCollection.findOne({ username: data.username });
+        match = await adminCollection.findOne({ username });
     } else if (role === 'Security') {
-        match = await securityCollection.findOne({ username: data.username });
+        match = await securityCollection.findOne({ username });
     } else if (role === 'Host') {
-        match = await hostCollection.findOne({ username: data.username });
+        match = await hostCollection.findOne({ username });
     }
 
     if (match) {
-        // Compare the provided password with the stored password
         const isPasswordMatch = await decryptPassword(data.password, match.password);
 
         if (isPasswordMatch) {
-            console.clear(); // Clear the console
+            // Clear the console
+            console.clear();
             const token = generateToken(match);
             console.log(output(match.role));
-            return "\nToken for " + match.name + ": " + token;
+            // Reset login attempts on successful login
+            loginAttempts[username] = undefined;
+            return `\nToken for ${match.name}: ${token}`;
         } else {
+            // Update login attempts on failed password attempt
+            updateLoginAttempts(username);
             return "Wrong password";
         }
     } else {
+        // Update login attempts on user not found
+        updateLoginAttempts(username);
         return "User not found";
     }
 }

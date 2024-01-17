@@ -104,7 +104,6 @@ async function run() {
  *               - name
  *               - email
  *               - phoneNumber
- *               - role
  *     responses:
  *       '200':
  *         description: Admin registered successfully

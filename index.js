@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const passwordValidator = require('password-validator');
 const loginAttempts = new Map();
+const maxRetries = 5;
+const cooldownPeriod = 60000; // 1 minute in milliseconds
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
@@ -664,38 +666,75 @@ async function registerAdmin(client, data) {
     return 'Admin registered';
   }
   
-// Function to login
+//Function to login
 async function login(client, data, role) {
-    const maxRetries = 5;
-    const cooldownPeriod = 60 * 1000; // 1 minute in milliseconds
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
+    const hostCollection = client.db("assigment").collection("Host");
 
-    const collection = client.db("assigment").collection(role);
+    let match;
 
-    let match = await collection.findOne({ username: data.username });
+    if (role === 'Admin') {
+        match = await adminCollection.findOne({ username: data.username });
+    } else if (role === 'Security') {
+        match = await securityCollection.findOne({ username: data.username });
+    } else if (role === 'Host') {
+        match = await hostCollection.findOne({ username: data.username });
+    }
 
     if (match) {
-        // Check if the account is locked
-        const accountLocked = loginAttempts.has(data.username) && loginAttempts.get(data.username) > Date.now();
-
-        if (accountLocked) {
-            console.log(`Account locked. Please wait for ${Math.ceil((loginAttempts.get(data.username) - Date.now()) / 1000)} seconds.`);
-            return "Login failed";
-        }
-
         // Compare the provided password with the stored password
         const isPasswordMatch = await decryptPassword(data.password, match.password);
 
         if (isPasswordMatch) {
-            // Reset login attempts on successful login
             console.clear(); // Clear the console
             const token = generateToken(match);
             console.log(output(match.role));
-            loginAttempts.delete(data.username); // Reset login attempts on successful login
             return "\nToken for " + match.name + ": " + token;
         } else {
-            // Increment login attempts on unsuccessful login
+            return "Wrong password";
+        }
+    } else {
+        return "User not found";
+    }
+}
+// Function to login
+async function login(client, data, role) {
+    const adminCollection = client.db("assigment").collection("Admin");
+    const securityCollection = client.db("assigment").collection("Security");
+    const hostCollection = client.db("assigment").collection("Host");
+
+    // Check if the account is temporarily locked
+    const lockedUntil = loginAttempts.get(data.username);
+    if (lockedUntil && lockedUntil > Date.now()) {
+        console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${(lockedUntil - Date.now()) / 1000} seconds.`);
+        return "Login failed";
+    }
+
+    let match;
+
+    if (role === 'Admin') {
+        match = await adminCollection.findOne({ username: data.username });
+    } else if (role === 'Security') {
+        match = await securityCollection.findOne({ username: data.username });
+    } else if (role === 'Host') {
+        match = await hostCollection.findOne({ username: data.username });
+    }
+
+    if (match) {
+        // Compare the provided password with the stored password
+        const isPasswordMatch = await decryptPassword(data.password, match.password);
+
+        if (isPasswordMatch) {
+            console.clear(); // Clear the console
+            const token = generateToken(match);
+            console.log(output(match.role));
+            // Reset login attempts on successful login
+            loginAttempts.delete(data.username);
+            return "\nToken for " + match.name + ": " + token;
+        } else {
+            // Increment login attempts for unsuccessful login
             const attempts = loginAttempts.get(data.username) || 0;
-            console.log(`Wrong password. Remaining attempts: ${maxRetries - attempts}`);
 
             if (attempts >= maxRetries - 1) {
                 // Lock the account if maximum retries reached
@@ -704,17 +743,12 @@ async function login(client, data, role) {
                 return "Login failed";
             } else {
                 loginAttempts.set(data.username, attempts + 1);
-            }
-
-            if (attempts >= maxRetries - 1) {
-                return "Login failed";
+                return "Wrong password";
             }
         }
     } else {
-        console.log("User not found");
+        return "User not found";
     }
-
-    return "Login failed";
 }
 
 //Function to encrypt password

@@ -644,12 +644,7 @@ function generateToken(userProfile){
 // Function to register admin
 async function registerAdmin(client, data) {
     data.password = await encryptPassword(data.password);
-  
-    // Validate password strength
-    if (!validateStrongPassword(data.password)) {
-      return 'Weak password. Please choose a stronger password.';
-    }
-  
+    
     const adminCollection = client.db("assigment").collection("Admin");
   
     // Check if an admin already exists
@@ -658,9 +653,18 @@ async function registerAdmin(client, data) {
     if (existingAdmin) {
       return 'An admin is already registered';
     }
+  
+    // Validate the strength of the password
+    const passwordValidationResult = validateStrongPassword(data.password);
+  
+    if (passwordValidationResult !== 'Password is strong.') {
+      return passwordValidationResult;
+    }
+  
     const result = await adminCollection.insertOne(data);
-  return 'Admin registered';
-}
+    return 'Admin registered';
+  }
+  
 
 //Function to login
 async function login(client, data, role) {
@@ -714,11 +718,6 @@ async function registerHost(client, data, hostData) {
     const securityCollection = client.db("assigment").collection("Security");
     const hostCollection = client.db("assigment").collection("Host");
   
-    // Validate password strength
-    if (!validateStrongPassword(hostData.password)) {
-      return 'Weak password. Please choose a stronger password.';
-    }
-  
     // Check if the user is a security user
     if (data.role !== "Security") {
       return "Unauthorized - Only security users can register hosts";
@@ -728,6 +727,13 @@ async function registerHost(client, data, hostData) {
   
     if (tempHost) {
       return "Username already in use, please enter another username";
+    }
+  
+    // Validate the strength of the password
+    const passwordValidationResult = validateStrongPassword(hostData.password);
+  
+    if (passwordValidationResult !== 'Password is strong.') {
+      return passwordValidationResult;
     }
   
     const result = await hostCollection.insertOne({
@@ -789,7 +795,7 @@ function validateStrongPassword(password) {
   
 
 
-// Function to register security
+// Function to register security 
 async function register(client, data, mydata) {
     const adminCollection = client.db("assigment").collection("Admin");
     const securityCollection = client.db("assigment").collection("Security");
@@ -797,13 +803,15 @@ async function register(client, data, mydata) {
     const tempAdmin = await adminCollection.findOne({ username: mydata.username });
     const tempSecurity = await securityCollection.findOne({ username: mydata.username });
   
-    // Validate password strength
-    if (!validateStrongPassword(mydata.password)) {
-      return 'Weak password. Please choose a stronger password.';
-    }
-  
     if (tempAdmin || tempSecurity) {
       return "Username already in use, please enter another username";
+    }
+  
+    // Validate the strength of the password
+    const passwordValidationResult = validateStrongPassword(mydata.password);
+  
+    if (passwordValidationResult !== 'Password is strong.') {
+      return passwordValidationResult;
     }
   
     if (data.role === "Admin") {
@@ -823,27 +831,34 @@ async function register(client, data, mydata) {
 // Function to register host without security approval
 async function registerHostWithoutApproval(client, hostData) {
     const hostCollection = client.db('assigment').collection('Host');
-
+  
     // Check if the username is already in use
     const tempHost = await hostCollection.findOne({ username: hostData.username });
-
+  
     if (tempHost) {
-        return "Username already in use, please enter another username";
+      return "Username already in use, please enter another username";
     }
-
+  
+    // Validate the strength of the password
+    const passwordValidationResult = validateStrongPassword(hostData.password);
+  
+    if (passwordValidationResult !== 'Password is strong.') {
+      return passwordValidationResult;
+    }
+  
     // Register the host without security approval
     const result = await hostCollection.insertOne({
-        username: hostData.username,
-        password: await encryptPassword(hostData.password),
-        name: hostData.name,
-        email: hostData.email,
-        phoneNumber: hostData.phoneNumber,
-        role: "Host",
+      username: hostData.username,
+      password: await encryptPassword(hostData.password),
+      name: hostData.name,
+      email: hostData.email,
+      phoneNumber: hostData.phoneNumber,
+      role: "Host",
     });
-
+  
     return "Host registered successfully without security approval";
-}
-
+  }
+  
 // Function to issue a pass
 async function VisitorPass(client, data, passData) {
     const passesCollection = client.db('assigment').collection('Passes');

@@ -3,7 +3,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const passwordValidator = require('password-validator');
-
+const loginAttempts = new Map();
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
@@ -675,10 +675,10 @@ async function login(client, data, role) {
 
     if (match) {
         // Check if the account is locked
-        const accountLocked = match.lockedUntil && match.lockedUntil > Date.now();
+        const accountLocked = loginAttempts.has(data.username) && loginAttempts.get(data.username) > Date.now();
 
         if (accountLocked) {
-            console.log(`Account locked. Please wait for ${Math.ceil((match.lockedUntil - Date.now()) / 1000)} seconds.`);
+            console.log(`Account locked. Please wait for ${Math.ceil((loginAttempts.get(data.username) - Date.now()) / 1000)} seconds.`);
             return "Login failed";
         }
 
@@ -690,30 +690,22 @@ async function login(client, data, role) {
             console.clear(); // Clear the console
             const token = generateToken(match);
             console.log(output(match.role));
+            loginAttempts.delete(data.username); // Reset login attempts on successful login
             return "\nToken for " + match.name + ": " + token;
         } else {
             // Increment login attempts on unsuccessful login
-            match.loginAttempts = (match.loginAttempts || 0) + 1;
-            console.log(`Wrong password. Remaining attempts: ${maxRetries - match.loginAttempts}`);
+            const attempts = loginAttempts.get(data.username) || 0;
+            console.log(`Wrong password. Remaining attempts: ${maxRetries - attempts}`);
 
-            if (match.loginAttempts >= maxRetries) {
+            if (attempts >= maxRetries - 1) {
                 // Lock the account if maximum retries reached
-                match.lockedUntil = Date.now() + cooldownPeriod;
+                loginAttempts.set(data.username, Date.now() + cooldownPeriod);
                 console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${cooldownPeriod / 1000} seconds.`);
+            } else {
+                loginAttempts.set(data.username, attempts + 1);
             }
 
-            // Update login attempts and account lock status in the database
-            await collection.updateOne(
-                { username: data.username },
-                {
-                    $set: {
-                        loginAttempts: match.loginAttempts,
-                        lockedUntil: match.lockedUntil
-                    }
-                }
-            );
-
-            if (match.loginAttempts >= maxRetries) {
+            if (attempts >= maxRetries - 1) {
                 return "Login failed";
             }
         }

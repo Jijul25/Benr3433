@@ -707,7 +707,8 @@ async function login(client, data, role) {
     // Check if the account is temporarily locked
     const lockedUntil = loginAttempts.get(data.username);
     if (lockedUntil && lockedUntil > Date.now()) {
-        console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${(lockedUntil - Date.now()) / 1000} seconds.`);
+        const remainingTime = (lockedUntil - Date.now()) / 1000;
+        console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${remainingTime} seconds.`);
         return "Login failed";
     }
 
@@ -743,7 +744,10 @@ async function login(client, data, role) {
                 return "Login failed";
             } else {
                 loginAttempts.set(data.username, attempts + 1);
-                return "Wrong password";
+                if (attempts === maxRetries - 1) {
+                    console.log(`Too many unsuccessful login attempts. Account will be locked after this attempt.`);
+                }
+                return `Wrong password. Remaining attempts: ${maxRetries - attempts - 1}`;
             }
         }
     } else {

@@ -668,7 +668,7 @@ async function registerAdmin(client, data) {
 // Function to login
 async function login(client, data, role) {
     const maxRetries = 5;
-    const cooldownPeriod = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const cooldownPeriod = 1 * 60 * 1000; // 1 minute in milliseconds
 
     const adminCollection = client.db("assigment").collection("Admin");
     const securityCollection = client.db("assigment").collection("Security");

@@ -670,64 +670,60 @@ async function login(client, data, role) {
     const maxRetries = 5;
     const cooldownPeriod = 1 * 60 * 1000; // 1 minute in milliseconds
 
-    const adminCollection = client.db("assigment").collection("Admin");
-    const securityCollection = client.db("assigment").collection("Security");
-    const hostCollection = client.db("assigment").collection("Host");
+    const collection = client.db("assigment").collection(role);
 
-    let match;
+    let match = await collection.findOne({ username: data.username });
 
-    if (role === 'Admin') {
-        match = await adminCollection.findOne({ username: data.username });
-    } else if (role === 'Security') {
-        match = await securityCollection.findOne({ username: data.username });
-    } else if (role === 'Host') {
-        match = await hostCollection.findOne({ username: data.username });
-    }
+    if (match) {
+        // Check if cooldown period has elapsed
+        const cooldownElapsed = Date.now() - (match.lastLoginAttempt || 0) > cooldownPeriod;
 
-    // Initialize the login attempt counter and last login attempt timestamp
-    let loginAttempts = match ? match.loginAttempts || 0 : 0;
-    let lastLoginAttempt = match ? match.lastLoginAttempt || 0 : 0;
+        if (cooldownElapsed) {
+            // Compare the provided password with the stored password
+            const isPasswordMatch = await decryptPassword(data.password, match.password);
 
-    // Check if cooldown period has elapsed
-    const cooldownElapsed = Date.now() - lastLoginAttempt > cooldownPeriod;
+            if (isPasswordMatch) {
+                // Reset login attempts on successful login
+                console.clear(); // Clear the console
+                const token = generateToken(match);
+                console.log(output(match.role));
+                return "\nToken for " + match.name + ": " + token;
+            } else {
+                // Increment login attempts on unsuccessful login
+                match.loginAttempts = (match.loginAttempts || 0) + 1;
+                console.log(`Wrong password. Remaining attempts: ${maxRetries - match.loginAttempts}`);
 
-    if (match && cooldownElapsed) {
-        // Compare the provided password with the stored password
-        const isPasswordMatch = await decryptPassword(data.password, match.password);
-
-        if (isPasswordMatch) {
-            // Reset login attempts on successful login
-            loginAttempts = 0;
-            console.clear(); // Clear the console
-            const token = generateToken(match);
-            console.log(output(match.role));
-            return "\nToken for " + match.name + ": " + token;
-        } else {
-            // Increment login attempts on unsuccessful login
-            loginAttempts++;
-            console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
-
-            if (loginAttempts >= maxRetries) {
-                // Set cooldown if maximum retries reached
-                lastLoginAttempt = Date.now();
-                console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
+                if (match.loginAttempts >= maxRetries) {
+                    // Set cooldown if maximum retries reached
+                    match.lastLoginAttempt = Date.now();
+                    console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
+                }
             }
-        }
 
-        // Update login attempts and last login attempt timestamp in the database
-        await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
+            // Update login attempts and last login attempt timestamp in the database
+            await collection.updateOne(
+                { username: data.username },
+                {
+                    $set: {
+                        loginAttempts: match.loginAttempts,
+                        lastLoginAttempt: match.lastLoginAttempt
+                    }
+                }
+            );
 
-        if (loginAttempts >= maxRetries) {
-            return "Login failed";
+            if (match.loginAttempts >= maxRetries) {
+                return "Login failed";
+            }
+        } else {
+            console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - match.lastLoginAttempt)) / 1000)} seconds.`);
         }
-    } else if (!cooldownElapsed) {
-        console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - lastLoginAttempt)) / 1000)} seconds.`);
     } else {
         console.log("User not found");
     }
 
     return "Login failed";
 }
+
 
 // Function to update login attempts and last login attempt timestamp in the database
 async function updateLoginAttempts(client, role, username, loginAttempts, lastLoginAttempt) {

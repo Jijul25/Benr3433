@@ -664,49 +664,51 @@ async function registerAdmin(client, data) {
     return 'Admin registered';
   }
   
-
 // Function to login
 async function login(client, data, role) {
     const maxRetries = 5;
-    const cooldownPeriod = 1 * 60 * 1000; // 1 minute in milliseconds
+    const cooldownPeriod = 60 * 1000; // 1 minute in milliseconds
 
     const collection = client.db("assigment").collection(role);
 
     let match = await collection.findOne({ username: data.username });
 
     if (match) {
-        // Check if cooldown period has elapsed
-        const cooldownElapsed = Date.now() - (match.lastLoginAttempt || 0) > cooldownPeriod;
+        // Check if the account is locked
+        const accountLocked = match.lockedUntil && match.lockedUntil > Date.now();
 
-        if (cooldownElapsed) {
-            // Compare the provided password with the stored password
-            const isPasswordMatch = await decryptPassword(data.password, match.password);
+        if (accountLocked) {
+            console.log(`Account locked. Please wait for ${Math.ceil((match.lockedUntil - Date.now()) / 1000)} seconds.`);
+            return "Login failed";
+        }
 
-            if (isPasswordMatch) {
-                // Reset login attempts on successful login
-                console.clear(); // Clear the console
-                const token = generateToken(match);
-                console.log(output(match.role));
-                return "\nToken for " + match.name + ": " + token;
-            } else {
-                // Increment login attempts on unsuccessful login
-                match.loginAttempts = (match.loginAttempts || 0) + 1;
-                console.log(`Wrong password. Remaining attempts: ${maxRetries - match.loginAttempts}`);
+        // Compare the provided password with the stored password
+        const isPasswordMatch = await decryptPassword(data.password, match.password);
 
-                if (match.loginAttempts >= maxRetries) {
-                    // Set cooldown if maximum retries reached
-                    match.lastLoginAttempt = Date.now();
-                    console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
-                }
+        if (isPasswordMatch) {
+            // Reset login attempts on successful login
+            console.clear(); // Clear the console
+            const token = generateToken(match);
+            console.log(output(match.role));
+            return "\nToken for " + match.name + ": " + token;
+        } else {
+            // Increment login attempts on unsuccessful login
+            match.loginAttempts = (match.loginAttempts || 0) + 1;
+            console.log(`Wrong password. Remaining attempts: ${maxRetries - match.loginAttempts}`);
+
+            if (match.loginAttempts >= maxRetries) {
+                // Lock the account if maximum retries reached
+                match.lockedUntil = Date.now() + cooldownPeriod;
+                console.log(`Too many unsuccessful login attempts. Account locked. Please wait for ${cooldownPeriod / 1000} seconds.`);
             }
 
-            // Update login attempts and last login attempt timestamp in the database
+            // Update login attempts and account lock status in the database
             await collection.updateOne(
                 { username: data.username },
                 {
                     $set: {
                         loginAttempts: match.loginAttempts,
-                        lastLoginAttempt: match.lastLoginAttempt
+                        lockedUntil: match.lockedUntil
                     }
                 }
             );
@@ -714,8 +716,6 @@ async function login(client, data, role) {
             if (match.loginAttempts >= maxRetries) {
                 return "Login failed";
             }
-        } else {
-            console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - match.lastLoginAttempt)) / 1000)} seconds.`);
         }
     } else {
         console.log("User not found");

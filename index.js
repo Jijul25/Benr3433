@@ -759,8 +759,34 @@ async function readHost(client, data) {
 
 // Function to validate a strong password
 function validateStrongPassword(password) {
-    return passwordSchema.validate(password);
+    const validationResult = passwordSchema.validate(password, { list: true });
+  
+    if (validationResult.length === 0) {
+      return 'Password is strong.';
+    } else {
+      const requirements = validationResult.map(rule => {
+        switch (rule) {
+          case 'min':
+            return 'Minimum length of 8 characters';
+          case 'max':
+            return 'Maximum length of 100 characters';
+          case 'uppercase':
+            return 'At least one uppercase letter';
+          case 'lowercase':
+            return 'At least one lowercase letter';
+          case 'digits':
+            return 'At least one digit';
+          case 'spaces':
+            return 'Should not contain spaces';
+          default:
+            return 'Unknown requirement';
+        }
+      });
+  
+      return `Weak password. Please meet the following requirements: ${requirements.join(', ')}`;
+    }
   }
+  
 
 
 // Function to register security

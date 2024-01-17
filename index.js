@@ -710,12 +710,15 @@ async function login(client, data, role) {
                 // Set cooldown if maximum retries reached
                 lastLoginAttempt = Date.now();
                 console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
+                // Update login attempts and last login attempt timestamp in the database
+                await updateLoginAttempts(client, role, match.username, loginAttempts, lastLoginAttempt);
+                return "Login failed";
             } else {
                 console.log(`Wrong password. Remaining attempts: ${maxRetries - loginAttempts}`);
             }
         }
     } else if (!cooldownElapsed) {
-        console.log(`Too many unsuccessful login attempts. Please wait for ${cooldownPeriod / 1000} seconds.`);
+        console.log(`Too many unsuccessful login attempts. Please wait for ${Math.ceil((cooldownPeriod - (Date.now() - lastLoginAttempt)) / 1000)} seconds.`);
     } else {
         console.log("User not found");
     }
@@ -741,6 +744,7 @@ async function updateLoginAttempts(client, role, username, loginAttempts, lastLo
         }
     );
 }
+
 
 
 //Function to encrypt password

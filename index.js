@@ -9,7 +9,8 @@ const cooldownPeriod = 60000; // 1 minute in milliseconds
 const app = express();
 const port = process.env.PORT || 3000;
 const saltRounds = 10;
-const uri = "mongodb+srv://jolliey25:Zzul2501@dataproject.ou3pfdk.mongodb.net/";
+const uri = "mongodb+srv://Jijul:Zzul2501@cluster0.ta9gou3.mongodb.net/";
+
 const passwordSchema = new passwordValidator();
 passwordSchema
   .is().min(8)            // Minimum length 8

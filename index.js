@@ -28,7 +28,7 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Welcome to web app Secure Info',
+            title: 'HOSTEL FINANCE MANAGEMENT SYSTEM',
             version: '1.0.0'
         },
         components: {
@@ -69,7 +69,7 @@ async function run() {
   });
 
   app.get('/', (req, res) => {
-    res.send('Server Group 21 Information Security');
+    res.send('Welcome to ALMA SKILL DEVELOPEMENT RESOURCES');
   });
 
   /**
